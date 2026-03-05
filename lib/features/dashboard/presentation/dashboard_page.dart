@@ -198,7 +198,7 @@ class _SummaryItem extends StatelessWidget {
           amountVisible
               ? '¥${AppTheme.formatDisplayAmount(amount)}'
               : '****',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.bold,
               ),

@@ -211,7 +211,7 @@ class _RecordPageState extends ConsumerState<RecordPage>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('记账成功')),
           );
-          ref.read(recordFormProvider.notifier).reset();
+          await ref.read(recordFormProvider.notifier).onSaveSuccess();
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
             context.go('/transactions');
