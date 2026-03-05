@@ -31,6 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
 
   # State management
@@ -69,6 +72,12 @@ dependencies:
   # URL launcher
   url_launcher: any
 
+  # File sharing
+  share_plus: any
+
+  # Markdown rendering
+  flutter_markdown: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -92,6 +101,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/privacy_policy.md
 
   # To add assets to your application, add an assets section, like this:
   # assets:

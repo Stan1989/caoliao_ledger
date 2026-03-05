@@ -321,7 +321,7 @@ class _RecordPageState extends ConsumerState<RecordPage>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Text(
-              '¥ ${form.amount > 0 ? form.amount.toStringAsFixed(2) : '0.00'}',
+              '¥ ${form.amount > 0 ? AppTheme.formatDisplayAmount(form.amount) : '0.00'}',
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppTheme.amountColor(form.type.value),

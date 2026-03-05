@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/models/enums.dart';
 import '../../../core/providers/amount_visibility_provider.dart';
@@ -199,7 +200,7 @@ class AssetPage extends ConsumerWidget {
                                   ),
                                   Text(
                                     amountVisible
-                                        ? '¥${displayBalance.toStringAsFixed(2)}'
+                                        ? '¥${AppTheme.formatDisplayAmount(displayBalance)}'
                                         : '****',
                                     style: Theme.of(context)
                                         .textTheme
@@ -438,7 +439,7 @@ class _NetAssetCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               amountVisible
-                  ? '¥${netAsset.toStringAsFixed(2)}'
+                  ? '¥${AppTheme.formatDisplayAmount(netAsset)}'
                   : '****',
               style: Theme.of(context)
                   .textTheme
@@ -460,7 +461,7 @@ class _NetAssetCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       amountVisible
-                          ? '¥${totalAsset.toStringAsFixed(2)}'
+                          ? '¥${AppTheme.formatDisplayAmount(totalAsset)}'
                           : '****',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
@@ -477,7 +478,7 @@ class _NetAssetCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       amountVisible
-                          ? '¥${totalLiability.toStringAsFixed(2)}'
+                          ? '¥${AppTheme.formatDisplayAmount(totalLiability)}'
                           : '****',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
@@ -555,7 +556,7 @@ class _SummaryColumn extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          amountVisible ? '¥${value.toStringAsFixed(2)}' : '****',
+          amountVisible ? '¥${AppTheme.formatDisplayAmount(value)}' : '****',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w600,
@@ -583,7 +584,7 @@ class _SmallStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       amountVisible
-          ? '$label ¥${value.toStringAsFixed(2)}'
+          ? '$label ¥${AppTheme.formatDisplayAmount(value)}'
           : '$label ****',
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: highlight

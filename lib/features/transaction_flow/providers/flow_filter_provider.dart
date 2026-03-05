@@ -8,30 +8,35 @@ class FlowFilterState {
     this.accountIds = const {},
     this.memberIds = const {},
     this.projectIds = const {},
+    this.minAmount,
   });
 
   final DateTimeRange? dateRange;
   final Set<int> accountIds;
   final Set<int> memberIds;
   final Set<int> projectIds;
+  final double? minAmount;
 
   bool get isActive =>
       dateRange != null ||
       accountIds.isNotEmpty ||
       memberIds.isNotEmpty ||
-      projectIds.isNotEmpty;
+      projectIds.isNotEmpty ||
+      minAmount != null;
 
   FlowFilterState copyWith({
     DateTimeRange? Function()? dateRange,
     Set<int>? accountIds,
     Set<int>? memberIds,
     Set<int>? projectIds,
+    double? Function()? minAmount,
   }) {
     return FlowFilterState(
       dateRange: dateRange != null ? dateRange() : this.dateRange,
       accountIds: accountIds ?? this.accountIds,
       memberIds: memberIds ?? this.memberIds,
       projectIds: projectIds ?? this.projectIds,
+      minAmount: minAmount != null ? minAmount() : this.minAmount,
     );
   }
 }
@@ -43,6 +48,10 @@ class FlowFilterNotifier extends Notifier<FlowFilterState> {
 
   void setDateRange(DateTimeRange? range) {
     state = state.copyWith(dateRange: () => range);
+  }
+
+  void setMinAmount(double? amount) {
+    state = state.copyWith(minAmount: () => amount);
   }
 
   void toggleAccount(int id) {

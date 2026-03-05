@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/models/enums.dart';
 import '../../../../core/providers/database_provider.dart';
@@ -88,7 +89,7 @@ class AccountSelector extends ConsumerWidget {
                               ? Text('**** ${account.cardLastFour}')
                               : null,
                           trailing: Text(
-                            '¥${account.balance.toStringAsFixed(2)}',
+                            '¥${AppTheme.formatDisplayAmount(account.balance)}',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           onTap: () {

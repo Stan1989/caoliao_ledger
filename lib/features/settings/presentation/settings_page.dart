@@ -1,14 +1,99 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../../import/providers/export_provider.dart';
 
 /// Settings / "我的" page.
-class SettingsPage extends ConsumerWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  bool _exporting = false;
+
+  Future<void> _exportExcel() async {
+    setState(() => _exporting = true);
+
+    try {
+      final notifier = ref.read(exportProvider.notifier);
+      final filePath = await notifier.exportToExcel();
+
+      if (!mounted) return;
+      setState(() => _exporting = false);
+
+      final state = ref.read(exportProvider);
+
+      if (filePath != null) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('导出成功'),
+            content: Text('共导出 ${state.rowCount} 条记录'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('关闭'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  SharePlus.instance.share(
+                    ShareParams(files: [XFile(filePath)]),
+                  );
+                },
+                icon: const Icon(Icons.share),
+                label: const Text('分享文件'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('导出失败'),
+            content: Text(state.errorMessage ?? '未知错误'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      notifier.reset();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _exporting = false);
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('导出失败'),
+            content: Text('$e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Scaffold(
       appBar: AppBar(title: const Text('我的')),
       body: ListView(
         children: [
@@ -91,9 +176,7 @@ class SettingsPage extends ConsumerWidget {
                 icon: Icons.table_chart_outlined,
                 title: '导出 Excel',
                 subtitle: '将记录导出为 Excel 文件',
-                onTap: () {
-                  // TODO: Implement Excel export
-                },
+                onTap: () => _exportExcel(),
               ),
               _SettingsTile(
                 icon: Icons.file_upload_outlined,
@@ -117,6 +200,15 @@ class SettingsPage extends ConsumerWidget {
           ),
         ],
       ),
+    ),
+        if (_exporting)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black26,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+      ],
     );
   }
 }

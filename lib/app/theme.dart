@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Global Material 3 theme for 草料记账.
 class AppTheme {
@@ -89,9 +90,26 @@ class AppTheme {
     }
   }
 
-  /// Format amount with sign prefix.
+  /// Number format for thousand-separated amounts with 2 decimals.
+  static final NumberFormat _amountFormat = NumberFormat('#,##0.00');
+
+  /// Number format for thousand-separated amounts without decimals (for chart axes).
+  static final NumberFormat _amountFormatCompact = NumberFormat('#,##0');
+
+  /// Format a numeric amount with thousand separators (e.g. 12,555.12).
+  static String formatDisplayAmount(double amount) {
+    return _amountFormat.format(amount);
+  }
+
+  /// Format a numeric amount with thousand separators, no decimals (e.g. 12,555).
+  /// Useful for chart Y-axis labels.
+  static String formatDisplayAmountCompact(double amount) {
+    return _amountFormatCompact.format(amount);
+  }
+
+  /// Format amount with sign prefix and thousand separators.
   static String formatAmount(double amount, int type) {
-    final abs = amount.abs().toStringAsFixed(2);
+    final abs = formatDisplayAmount(amount.abs());
     switch (type) {
       case 0:
         return '-¥$abs';

@@ -226,6 +226,11 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                         filter.projectIds.contains(t.projectId);
                   }).toList();
                 }
+                if (filter.minAmount != null) {
+                  transactions = transactions.where((t) {
+                    return t.amount.abs() > filter.minAmount!;
+                  }).toList();
+                }
 
                 if (transactions.isEmpty) {
                   return Center(
@@ -337,6 +342,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     if (filter.projectIds.isNotEmpty) {
       parts.add('${filter.projectIds.length}个项目');
     }
+    if (filter.minAmount != null) {
+      parts.add('>¥${filter.minAmount!.toInt()}');
+    }
     return parts.isEmpty ? '已筛选' : parts.join(' · ');
   }
 }
@@ -392,7 +400,7 @@ class _MiniStat extends StatelessWidget {
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         Text(
           amountVisible
-              ? '¥${amount.toStringAsFixed(2)}'
+              ? '¥${AppTheme.formatDisplayAmount(amount)}'
               : '****',
           style: Theme.of(context)
               .textTheme

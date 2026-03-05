@@ -6,6 +6,7 @@ import 'package:excel/excel.dart';
 import 'package:xml/xml.dart' as xml;
 
 import '../models/import_row.dart';
+import 'excel_constants.dart';
 
 /// Parses an xlsx file's bytes into structured [ImportData].
 class ExcelParser {
@@ -96,40 +97,35 @@ class ExcelParser {
   }
 
   ImportRow? _parseRow(List<Data?> row, SheetType sheetType) {
-    // Column mapping (0-indexed):
-    // 0: 交易类型  1: 日期  2: 分类  3: 子分类  4: 账户1
-    // 5: 账户2  6: 账户币种  7: 金额  8: 成员  9: 商家
-    // 10: 项目分类  11: 项目  12: 记账人  13: 备注
-
-    final dateValue = _cellValue(row, 1);
-    final amountValue = _cellValue(row, 7);
-    final account1 = _cellValue(row, 4);
-    final category = _cellValue(row, 2);
+    final dateValue = _cellValue(row, ExcelConstants.colDate);
+    final amountValue = _cellValue(row, ExcelConstants.colAmount);
+    final account1 = _cellValue(row, ExcelConstants.colAccount1);
+    final category = _cellValue(row, ExcelConstants.colCategory);
 
     // Skip rows with missing essential fields.
     if (dateValue == null || amountValue == null || account1 == null) {
       return null;
     }
 
-    final date = _parseDate(row, 1);
-    final amount = _parseAmount(row, 7);
+    final date = _parseDate(row, ExcelConstants.colDate);
+    final amount = _parseAmount(row, ExcelConstants.colAmount);
     if (date == null || amount == null) return null;
 
     return ImportRow(
       sheetType: sheetType,
       date: date,
       category: category ?? '',
-      subcategory: _cellValue(row, 3),
+      subcategory: _cellValue(row, ExcelConstants.colSubcategory),
       account1: account1,
-      account2: _cellValue(row, 5),
-      currency: _cellValue(row, 6),
+      account2: _cellValue(row, ExcelConstants.colAccount2),
+      currency: _cellValue(row, ExcelConstants.colCurrency),
       amount: amount,
-      member: _cellValue(row, 8),
-      merchant: _cellValue(row, 9),
-      projectCategory: _cellValue(row, 10),
-      project: _cellValue(row, 11),
-      recorder: _cellValue(row, 12),
-      note: _cellValue(row, 13),
+      member: _cellValue(row, ExcelConstants.colMember),
+      merchant: _cellValue(row, ExcelConstants.colMerchant),
+      projectCategory: _cellValue(row, ExcelConstants.colProjectCategory),
+      project: _cellValue(row, ExcelConstants.colProject),
+      recorder: _cellValue(row, ExcelConstants.colRecorder),
+      note: _cellValue(row, ExcelConstants.colNote),
     );
   }
 

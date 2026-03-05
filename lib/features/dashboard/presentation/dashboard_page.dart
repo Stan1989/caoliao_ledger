@@ -196,7 +196,7 @@ class _SummaryItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           amountVisible
-              ? '¥${amount.toStringAsFixed(2)}'
+              ? '¥${AppTheme.formatDisplayAmount(amount)}'
               : '****',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: color,

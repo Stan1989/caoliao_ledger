@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/providers/amount_visibility_provider.dart';
 import '../providers/report_provider.dart';
 
@@ -246,7 +247,7 @@ class _ToggleCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 amountVisible
-                    ? '¥${amount.toStringAsFixed(2)}'
+                    ? '¥${AppTheme.formatDisplayAmount(amount)}'
                     : '****',
                 style: TextStyle(
                   fontSize: 16,
@@ -327,8 +328,20 @@ class _ChartArea extends StatelessWidget {
           LineChartData(
             gridData: const FlGridData(show: true, drawVerticalLine: false),
             titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 48),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 56,
+                  getTitlesWidget: (value, meta) {
+                    return SideTitleWidget(
+                      meta: meta,
+                      child: Text(
+                        AppTheme.formatDisplayAmountCompact(value),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  },
+                ),
               ),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
@@ -419,8 +432,20 @@ class _ChartArea extends StatelessWidget {
               );
             }).toList(),
             titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 48),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 56,
+                  getTitlesWidget: (value, meta) {
+                    return SideTitleWidget(
+                      meta: meta,
+                      child: Text(
+                        AppTheme.formatDisplayAmountCompact(value),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  },
+                ),
               ),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
@@ -538,7 +563,7 @@ class _DetailList extends StatelessWidget {
           title: Text(label),
           trailing: Text(
             amountVisible
-                ? '¥${point.amount.toStringAsFixed(2)}'
+                ? '¥${AppTheme.formatDisplayAmount(point.amount)}'
                 : '****',
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
@@ -591,7 +616,7 @@ class _DetailList extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(amountVisible ? '¥${item.amount.toStringAsFixed(2)}' : '****',
+              Text(amountVisible ? '¥${AppTheme.formatDisplayAmount(item.amount)}' : '****',
                   style: const TextStyle(fontWeight: FontWeight.w500)),
               Text(amountVisible ? '${(pct * 100).toStringAsFixed(1)}%' : '****',
                   style: Theme.of(context).textTheme.bodySmall),

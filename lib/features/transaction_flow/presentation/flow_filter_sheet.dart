@@ -35,6 +35,14 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
   late Set<int> _accountIds;
   late Set<int> _memberIds;
   late Set<int> _projectIds;
+  late double? _minAmount;
+
+  static const _amountPresets = [
+    (1000.0, '>¥1,000'),
+    (3000.0, '>¥3,000'),
+    (5000.0, '>¥5,000'),
+    (10000.0, '>¥10,000'),
+  ];
 
   @override
   void initState() {
@@ -43,6 +51,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
     _accountIds = Set.from(widget.initial.accountIds);
     _memberIds = Set.from(widget.initial.memberIds);
     _projectIds = Set.from(widget.initial.projectIds);
+    _minAmount = widget.initial.minAmount;
   }
 
   @override
@@ -86,6 +95,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                         _accountIds = {};
                         _memberIds = {};
                         _projectIds = {};
+                        _minAmount = null;
                       });
                     },
                     child: const Text('重置'),
@@ -183,6 +193,27 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                     loading: () => const LinearProgressIndicator(),
                     error: (_, _) => const Text('加载失败'),
                   ),
+                  const SizedBox(height: 16),
+                  // Amount filter
+                  _SectionHeader(label: '金额范围'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _amountPresets.map((preset) {
+                      final (value, label) = preset;
+                      final selected = _minAmount == value;
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: selected,
+                        onSelected: (_) {
+                          setState(() {
+                            _minAmount = selected ? null : value;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
                 ],
               ),
             ),
@@ -200,6 +231,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                         accountIds: _accountIds,
                         memberIds: _memberIds,
                         projectIds: _projectIds,
+                        minAmount: _minAmount,
                       ),
                     );
                   },
