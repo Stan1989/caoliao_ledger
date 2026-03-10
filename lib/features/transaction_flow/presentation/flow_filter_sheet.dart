@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/models/enums.dart';
 import '../../../core/providers/database_provider.dart';
 import '../providers/flow_filter_provider.dart';
 
@@ -35,6 +36,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
   late Set<int> _accountIds;
   late Set<int> _memberIds;
   late Set<int> _projectIds;
+  late Set<TransactionType> _transactionTypes;
   late double? _minAmount;
 
   static const _amountPresets = [
@@ -51,6 +53,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
     _accountIds = Set.from(widget.initial.accountIds);
     _memberIds = Set.from(widget.initial.memberIds);
     _projectIds = Set.from(widget.initial.projectIds);
+    _transactionTypes = Set.from(widget.initial.transactionTypes);
     _minAmount = widget.initial.minAmount;
   }
 
@@ -75,7 +78,9 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -85,8 +90,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
                 children: [
-                  Text('筛选条件',
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text('筛选条件', style: Theme.of(context).textTheme.titleMedium),
                   const Spacer(),
                   TextButton(
                     onPressed: () {
@@ -95,6 +99,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                         _accountIds = {};
                         _memberIds = {};
                         _projectIds = {};
+                        _transactionTypes = {};
                         _minAmount = null;
                       });
                     },
@@ -118,7 +123,9 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: Theme.of(context).colorScheme.outline,
@@ -194,6 +201,32 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                     error: (_, _) => const Text('加载失败'),
                   ),
                   const SizedBox(height: 16),
+                  // Transaction types
+                  _SectionHeader(label: '流水类型'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: TransactionType.values
+                        .where((t) => t != TransactionType.balanceAdjustment)
+                        .map((type) {
+                          final label = switch (type) {
+                            TransactionType.expense => '支出',
+                            TransactionType.income => '收入',
+                            TransactionType.transfer => '转账',
+                            TransactionType.balanceAdjustment => '余额变更',
+                          };
+                          return FilterChip(
+                            label: Text(label),
+                            selected: _transactionTypes.contains(type),
+                            onSelected: (_) => setState(
+                              () => _toggleSet(_transactionTypes, type),
+                            ),
+                          );
+                        })
+                        .toList(),
+                  ),
+                  const SizedBox(height: 16),
                   // Amount filter
                   _SectionHeader(label: '金额范围'),
                   const SizedBox(height: 8),
@@ -231,6 +264,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                         accountIds: _accountIds,
                         memberIds: _memberIds,
                         projectIds: _projectIds,
+                        transactionTypes: _transactionTypes,
                         minAmount: _minAmount,
                       ),
                     );
@@ -259,7 +293,7 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
     }
   }
 
-  void _toggleSet(Set<int> set, int id) {
+  void _toggleSet<T>(Set<T> set, T id) {
     if (set.contains(id)) {
       set.remove(id);
     } else {

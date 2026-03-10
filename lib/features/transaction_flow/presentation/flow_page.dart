@@ -23,8 +23,9 @@ class _CurrentMonthNotifier extends Notifier<DateTime> {
 }
 
 /// Current displayed month for the transaction flow page.
-final _currentMonthProvider =
-    NotifierProvider<_CurrentMonthNotifier, DateTime>(_CurrentMonthNotifier.new);
+final _currentMonthProvider = NotifierProvider<_CurrentMonthNotifier, DateTime>(
+  _CurrentMonthNotifier.new,
+);
 
 /// Transaction flow page — monthly list with filters.
 class FlowPage extends ConsumerStatefulWidget {
@@ -100,9 +101,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
       end = DateTime(2100);
     }
 
-    final txnStream = ref.watch(
-      transactionRepositoryProvider,
-    ).watchByLedger(ledgerId, startDate: start, endDate: end);
+    final txnStream = ref
+        .watch(transactionRepositoryProvider)
+        .watchByLedger(ledgerId, startDate: start, endDate: end);
 
     // Pre-load account and member name maps
     final accountsAsync = ref.watch(allAccountsProvider);
@@ -137,7 +138,8 @@ class _FlowPageState extends ConsumerState<FlowPage> {
           IconButton(
             icon: Icon(amountVisible ? Icons.visibility : Icons.visibility_off),
             tooltip: amountVisible ? '隐藏金额' : '显示金额',
-            onPressed: () => ref.read(amountVisibilityProvider.notifier).toggle(),
+            onPressed: () =>
+                ref.read(amountVisibilityProvider.notifier).toggle(),
           ),
         ],
       ),
@@ -148,10 +150,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
             _MonthNavigator(
               current: currentMonth,
               onPrevious: () {
-                ref.read(_currentMonthProvider.notifier).set(DateTime(
-                  currentMonth.year,
-                  currentMonth.month - 1,
-                ));
+                ref
+                    .read(_currentMonthProvider.notifier)
+                    .set(DateTime(currentMonth.year, currentMonth.month - 1));
               },
               onNext: () {
                 final next = DateTime(
@@ -169,15 +170,18 @@ class _FlowPageState extends ConsumerState<FlowPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.filter_list, size: 16,
-                      color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.filter_list,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       _buildFilterDescription(filter),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -226,6 +230,11 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                         filter.projectIds.contains(t.projectId);
                   }).toList();
                 }
+                if (filter.transactionTypes.isNotEmpty) {
+                  transactions = transactions.where((t) {
+                    return matchesFlowFilterTransactionType(filter, t.type);
+                  }).toList();
+                }
                 if (filter.minAmount != null) {
                   transactions = transactions.where((t) {
                     return t.amount.abs() > filter.minAmount!;
@@ -247,9 +256,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                           filterActive ? '没有符合筛选条件的记录' : '暂无记录',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -271,11 +280,13 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                 // Group by day
                 final grouped = <String, List<Transaction>>{};
                 for (final t in transactions) {
-                  final key = DateFormat('yyyy-MM-dd')
-                      .format(t.transactionDate);
+                  final key = DateFormat(
+                    'yyyy-MM-dd',
+                  ).format(t.transactionDate);
                   grouped.putIfAbsent(key, () => []).add(t);
                 }
-                final sortedDays = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+                final sortedDays = grouped.keys.toList()
+                  ..sort((a, b) => b.compareTo(a));
 
                 return Column(
                   children: [
@@ -288,8 +299,18 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _MiniStat('支出', totalExpense, AppTheme.expenseColor, amountVisible: amountVisible),
-                          _MiniStat('收入', totalIncome, AppTheme.incomeColor, amountVisible: amountVisible),
+                          _MiniStat(
+                            '支出',
+                            totalExpense,
+                            AppTheme.expenseColor,
+                            amountVisible: amountVisible,
+                          ),
+                          _MiniStat(
+                            '收入',
+                            totalIncome,
+                            AppTheme.incomeColor,
+                            amountVisible: amountVisible,
+                          ),
                           _MiniStat(
                             '结余',
                             totalIncome - totalExpense,
@@ -308,12 +329,12 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                           final day = sortedDays[index];
                           final dayTxns = grouped[day]!;
                           return _DayGroup(
-                          day: day,
-                          transactions: dayTxns,
-                          amountVisible: amountVisible,
-                          accountNames: accountNames,
-                          memberNames: memberNames,
-                        );
+                            day: day,
+                            transactions: dayTxns,
+                            amountVisible: amountVisible,
+                            accountNames: accountNames,
+                            memberNames: memberNames,
+                          );
                         },
                       ),
                     ),
@@ -331,7 +352,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     final parts = <String>[];
     if (filter.dateRange != null) {
       final fmt = DateFormat('yyyy-MM-dd');
-      parts.add('${fmt.format(filter.dateRange!.start)} ~ ${fmt.format(filter.dateRange!.end)}');
+      parts.add(
+        '${fmt.format(filter.dateRange!.start)} ~ ${fmt.format(filter.dateRange!.end)}',
+      );
     }
     if (filter.accountIds.isNotEmpty) {
       parts.add('${filter.accountIds.length}个账户');
@@ -342,6 +365,7 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     if (filter.projectIds.isNotEmpty) {
       parts.add('${filter.projectIds.length}个项目');
     }
+    parts.add('类型: ${flowFilterTypeSummary(filter.transactionTypes)}');
     if (filter.minAmount != null) {
       parts.add('>¥${filter.minAmount!.toInt()}');
     }
@@ -375,10 +399,7 @@ class _MonthNavigator extends StatelessWidget {
             '${current.year}年${current.month}月',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: onNext,
-          ),
+          IconButton(icon: const Icon(Icons.chevron_right), onPressed: onNext),
         ],
       ),
     );
@@ -391,7 +412,12 @@ class _MiniStat extends StatelessWidget {
   final Color color;
   final bool amountVisible;
 
-  const _MiniStat(this.label, this.amount, this.color, {required this.amountVisible});
+  const _MiniStat(
+    this.label,
+    this.amount,
+    this.color, {
+    required this.amountVisible,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -399,13 +425,11 @@ class _MiniStat extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
         Text(
-          amountVisible
-              ? '¥${AppTheme.formatDisplayAmount(amount)}'
-              : '****',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: color, fontWeight: FontWeight.w600),
+          amountVisible ? '¥${AppTheme.formatDisplayAmount(amount)}' : '****',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -429,25 +453,94 @@ class _DayGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double dayExpense = 0;
+    double dayIncome = 0;
+    for (final t in transactions) {
+      final type = TransactionType.fromValue(t.type);
+      if (type == TransactionType.expense) {
+        dayExpense += t.amount;
+      } else if (type == TransactionType.income) {
+        dayIncome += t.amount;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Text(
-            day,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  day,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
+              ),
+              _DayGroupStat(
+                label: '支',
+                amount: dayExpense,
+                color: AppTheme.expenseColor,
+                amountVisible: amountVisible,
+              ),
+              const SizedBox(width: 8),
+              _DayGroupStat(
+                label: '收',
+                amount: dayIncome,
+                color: AppTheme.incomeColor,
+                amountVisible: amountVisible,
+              ),
+            ],
           ),
         ),
-        ...transactions.map((t) => _TransactionItem(
-              transaction: t,
-              amountVisible: amountVisible,
-              accountNames: accountNames,
-              memberNames: memberNames,
-            )),
+        ...transactions.map(
+          (t) => _TransactionItem(
+            transaction: t,
+            amountVisible: amountVisible,
+            accountNames: accountNames,
+            memberNames: memberNames,
+          ),
+        ),
         const Divider(height: 1, indent: 16, endIndent: 16),
+      ],
+    );
+  }
+}
+
+class _DayGroupStat extends StatelessWidget {
+  final String label;
+  final double amount;
+  final Color color;
+  final bool amountVisible;
+
+  const _DayGroupStat({
+    required this.label,
+    required this.amount,
+    required this.color,
+    required this.amountVisible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label:',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          amountVisible ? AppTheme.formatDisplayAmountCompact(amount) : '****',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -470,7 +563,10 @@ class _TransactionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final txnType = TransactionType.fromValue(transaction.type);
     final color = AppTheme.amountColor(transaction.type);
-    final amountText = AppTheme.formatAmount(transaction.amount, transaction.type);
+    final amountText = AppTheme.formatAmount(
+      transaction.amount,
+      transaction.type,
+    );
 
     IconData icon;
     String title;

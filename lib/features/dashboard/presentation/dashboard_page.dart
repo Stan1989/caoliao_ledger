@@ -15,9 +15,7 @@ class DashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ledgerId = ref.watch(activeLedgerIdProvider);
     if (ledgerId == null) {
-      return const Scaffold(
-        body: Center(child: Text('请先选择账本')),
-      );
+      return const Scaffold(body: Center(child: Text('请先选择账本')));
     }
 
     final now = DateTime.now();
@@ -36,7 +34,8 @@ class DashboardPage extends ConsumerWidget {
           IconButton(
             icon: Icon(amountVisible ? Icons.visibility : Icons.visibility_off),
             tooltip: amountVisible ? '隐藏金额' : '显示金额',
-            onPressed: () => ref.read(amountVisibilityProvider.notifier).toggle(),
+            onPressed: () =>
+                ref.read(amountVisibilityProvider.notifier).toggle(),
           ),
           IconButton(
             icon: const Icon(Icons.swap_horiz),
@@ -66,89 +65,119 @@ class DashboardPage extends ConsumerWidget {
             }
           }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Monthly summary card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
+          final dpr = MediaQuery.devicePixelRatioOf(context);
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final bgCacheWidth = (constraints.maxWidth * dpr)
+                  .clamp(720.0, 1440.0)
+                  .round();
+
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image(
+                    image: ResizeImage(
+                      const AssetImage('assets/image/home_bg.png'),
+                      width: bgCacheWidth,
+                    ),
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                  ),
+                  ColoredBox(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.45)
+                        : Colors.white.withValues(alpha: 0.52),
+                  ),
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '${now.year}年${now.month}月',
-                          style: Theme.of(context).textTheme.titleMedium,
+                        // Monthly summary card
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${now.year}年${now.month}月',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _SummaryItem(
+                                        label: '支出',
+                                        amount: totalExpense,
+                                        color: AppTheme.expenseColor,
+                                        amountVisible: amountVisible,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _SummaryItem(
+                                        label: '收入',
+                                        amount: totalIncome,
+                                        color: AppTheme.incomeColor,
+                                        amountVisible: amountVisible,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _SummaryItem(
+                                        label: '结余',
+                                        amount: totalIncome - totalExpense,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                        amountVisible: amountVisible,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
+                        // Quick actions
+                        Text(
+                          '快捷操作',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            Expanded(
-                              child: _SummaryItem(
-                                label: '支出',
-                                amount: totalExpense,
-                                color: AppTheme.expenseColor,
-                                amountVisible: amountVisible,
-                              ),
+                            _QuickAction(
+                              icon: Icons.account_balance_wallet,
+                              label: '账户管理',
+                              onTap: () {},
                             ),
-                            Expanded(
-                              child: _SummaryItem(
-                                label: '收入',
-                                amount: totalIncome,
-                                color: AppTheme.incomeColor,
-                                amountVisible: amountVisible,
-                              ),
+                            const SizedBox(width: 12),
+                            _QuickAction(
+                              icon: Icons.pie_chart_outline,
+                              label: '预算设置',
+                              onTap: () {},
+                              badge: '敬请期待',
                             ),
-                            Expanded(
-                              child: _SummaryItem(
-                                label: '结余',
-                                amount: totalIncome - totalExpense,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface,
-                                amountVisible: amountVisible,
-                              ),
+                            const SizedBox(width: 12),
+                            _QuickAction(
+                              icon: Icons.analytics_outlined,
+                              label: '深度报表',
+                              onTap: () {},
+                              badge: '敬请期待',
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Quick actions
-                Text(
-                  '快捷操作',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _QuickAction(
-                      icon: Icons.account_balance_wallet,
-                      label: '账户管理',
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 12),
-                    _QuickAction(
-                      icon: Icons.pie_chart_outline,
-                      label: '预算设置',
-                      onTap: () {},
-                      badge: '敬请期待',
-                    ),
-                    const SizedBox(width: 12),
-                    _QuickAction(
-                      icon: Icons.analytics_outlined,
-                      label: '深度报表',
-                      onTap: () {},
-                      badge: '敬请期待',
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -159,15 +188,16 @@ class DashboardPage extends ConsumerWidget {
 }
 
 /// Provider for monthly transactions.
-final _monthlyTransactionsProvider = StreamProvider.family<
-    List<Transaction>, (int, DateTime, DateTime)>((ref, params) {
-  final (ledgerId, start, end) = params;
-  return ref.watch(transactionRepositoryProvider).watchByLedger(
-        ledgerId,
-        startDate: start,
-        endDate: end,
-      );
-});
+final _monthlyTransactionsProvider =
+    StreamProvider.family<List<Transaction>, (int, DateTime, DateTime)>((
+      ref,
+      params,
+    ) {
+      final (ledgerId, start, end) = params;
+      return ref
+          .watch(transactionRepositoryProvider)
+          .watchByLedger(ledgerId, startDate: start, endDate: end);
+    });
 
 class _SummaryItem extends StatelessWidget {
   final String label;
@@ -190,18 +220,16 @@ class _SummaryItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
-          amountVisible
-              ? '¥${AppTheme.formatDisplayAmount(amount)}'
-              : '****',
+          amountVisible ? '¥${AppTheme.formatDisplayAmount(amount)}' : '****',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -240,9 +268,9 @@ class _QuickAction extends StatelessWidget {
                   Text(
                     badge!,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                          fontSize: 10,
-                        ),
+                      color: Theme.of(context).colorScheme.outline,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ],

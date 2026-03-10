@@ -1,8 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/database/daos/report_dao.dart';
 import '../../../core/providers/amount_visibility_provider.dart';
 import '../providers/report_provider.dart';
 
@@ -23,7 +25,8 @@ class ReportPage extends ConsumerWidget {
           IconButton(
             icon: Icon(amountVisible ? Icons.visibility : Icons.visibility_off),
             tooltip: amountVisible ? '隐藏金额' : '显示金额',
-            onPressed: () => ref.read(amountVisibilityProvider.notifier).toggle(),
+            onPressed: () =>
+                ref.read(amountVisibilityProvider.notifier).toggle(),
           ),
         ],
       ),
@@ -34,7 +37,11 @@ class ReportPage extends ConsumerWidget {
           // Dimension tabs
           _DimensionTabs(state: state, notifier: notifier),
           // Income / Expense toggle
-          _IncomeExpenseToggle(state: state, notifier: notifier, amountVisible: amountVisible),
+          _IncomeExpenseToggle(
+            state: state,
+            notifier: notifier,
+            amountVisible: amountVisible,
+          ),
           // Chart area
           Expanded(
             child: state.isLoading
@@ -150,14 +157,10 @@ class _DimensionTabs extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SegmentedButton<ReportDimension>(
         segments: const [
-          ButtonSegment(
-              value: ReportDimension.timeTrend, label: Text('时间趋势')),
-          ButtonSegment(
-              value: ReportDimension.category, label: Text('分类')),
-          ButtonSegment(
-              value: ReportDimension.account, label: Text('账号')),
-          ButtonSegment(
-              value: ReportDimension.project, label: Text('项目')),
+          ButtonSegment(value: ReportDimension.timeTrend, label: Text('时间趋势')),
+          ButtonSegment(value: ReportDimension.category, label: Text('分类')),
+          ButtonSegment(value: ReportDimension.account, label: Text('账号')),
+          ButtonSegment(value: ReportDimension.project, label: Text('项目')),
         ],
         selected: {state.dimension},
         onSelectionChanged: (s) => notifier.setDimension(s.first),
@@ -173,7 +176,11 @@ class _IncomeExpenseToggle extends StatelessWidget {
   final ReportNotifier notifier;
   final bool amountVisible;
 
-  const _IncomeExpenseToggle({required this.state, required this.notifier, required this.amountVisible});
+  const _IncomeExpenseToggle({
+    required this.state,
+    required this.notifier,
+    required this.amountVisible,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -240,10 +247,13 @@ class _ToggleCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Column(
             children: [
-              Text(label,
-                  style: TextStyle(
-                      color: selected ? color : null,
-                      fontWeight: selected ? FontWeight.bold : null)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? color : null,
+                  fontWeight: selected ? FontWeight.bold : null,
+                ),
+              ),
               const SizedBox(height: 4),
               Text(
                 amountVisible
@@ -285,12 +295,28 @@ class _ChartArea extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              if (state.chartType == ChartType.bar)
+                IconButton(
+                  tooltip: '全屏查看',
+                  icon: const Icon(Icons.fullscreen),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => _FullscreenBarChartPage(state: state),
+                      ),
+                    );
+                  },
+                ),
               SegmentedButton<ChartType>(
                 segments: const [
                   ButtonSegment(
-                      value: ChartType.bar, icon: Icon(Icons.bar_chart)),
+                    value: ChartType.bar,
+                    icon: Icon(Icons.bar_chart),
+                  ),
                   ButtonSegment(
-                      value: ChartType.pie, icon: Icon(Icons.pie_chart)),
+                    value: ChartType.pie,
+                    icon: Icon(Icons.pie_chart),
+                  ),
                 ],
                 selected: {state.chartType},
                 onSelectionChanged: (s) => notifier.setChartType(s.first),
@@ -310,8 +336,7 @@ class _ChartArea extends StatelessWidget {
   Widget _buildLineChart(BuildContext context) {
     final data = state.trendData;
     if (data.isEmpty) {
-      return const SizedBox(
-          height: 200, child: Center(child: Text('暂无数据')));
+      return const SizedBox(height: 200, child: Center(child: Text('暂无数据')));
     }
 
     final spots = data
@@ -352,22 +377,24 @@ class _ChartArea extends StatelessWidget {
                     final idx = value.toInt();
                     if (idx < 0 || idx >= data.length) return const SizedBox();
                     final d = data[idx].date;
-                    final label = state.granularity == TimeGranularity.month ||
+                    final label =
+                        state.granularity == TimeGranularity.month ||
                             state.granularity == TimeGranularity.custom
                         ? '${d.day}'
                         : '${d.month}月';
                     return SideTitleWidget(
                       meta: meta,
-                      child: Text(label,
-                          style: const TextStyle(fontSize: 10)),
+                      child: Text(label, style: const TextStyle(fontSize: 10)),
                     );
                   },
                 ),
               ),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             borderData: FlBorderData(show: false),
             lineBarsData: [
@@ -380,10 +407,9 @@ class _ChartArea extends StatelessWidget {
                 dotData: FlDotData(show: data.length <= 31),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.15),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.15),
                 ),
               ),
             ],
@@ -401,80 +427,11 @@ class _ChartArea extends StatelessWidget {
 
   Widget _buildBarChart(BuildContext context) {
     final items = state.summaryItems;
-    if (items.isEmpty) {
-      return const SizedBox(
-          height: 200, child: Center(child: Text('暂无数据')));
-    }
-
-    final maxAmount =
-        items.fold<double>(0, (m, e) => e.amount > m ? e.amount : m);
-
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: SizedBox(
-        height: 200,
-        child: BarChart(
-          BarChartData(
-            alignment: BarChartAlignment.spaceAround,
-            maxY: maxAmount * 1.2,
-            barGroups: items.asMap().entries.map((e) {
-              return BarChartGroupData(
-                x: e.key,
-                barRods: [
-                  BarChartRodData(
-                    toY: e.value.amount,
-                    color: _chartColor(context, e.key),
-                    width: items.length > 8 ? 12 : 20,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(4)),
-                  ),
-                ],
-              );
-            }).toList(),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 56,
-                  getTitlesWidget: (value, meta) {
-                    return SideTitleWidget(
-                      meta: meta,
-                      child: Text(
-                        AppTheme.formatDisplayAmountCompact(value),
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 28,
-                  getTitlesWidget: (value, meta) {
-                    final idx = value.toInt();
-                    if (idx < 0 || idx >= items.length) return const SizedBox();
-                    return SideTitleWidget(
-                      meta: meta,
-                      child: Text(
-                        items[idx].name.length > 4
-                            ? '${items[idx].name.substring(0, 4)}…'
-                            : items[idx].name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            ),
-            borderData: FlBorderData(show: false),
-            gridData: const FlGridData(drawVerticalLine: false),
-          ),
-        ),
+      child: _BarChartPanel(
+        items: items,
+        paletteResolver: (index) => _chartColor(context, index),
       ),
     );
   }
@@ -482,8 +439,7 @@ class _ChartArea extends StatelessWidget {
   Widget _buildPieChart(BuildContext context) {
     final items = state.summaryItems;
     if (items.isEmpty) {
-      return const SizedBox(
-          height: 200, child: Center(child: Text('暂无数据')));
+      return const SizedBox(height: 200, child: Center(child: Text('暂无数据')));
     }
 
     final total = items.fold<double>(0, (s, e) => s + e.amount);
@@ -504,9 +460,10 @@ class _ChartArea extends StatelessWidget {
                 title: '${pct.toStringAsFixed(0)}%',
                 radius: 50,
                 titleStyle: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               );
             }).toList(),
           ),
@@ -532,6 +489,153 @@ class _ChartArea extends StatelessWidget {
   }
 }
 
+class _BarChartPanel extends StatelessWidget {
+  final List<ReportSummaryItem> items;
+  final Color Function(int index) paletteResolver;
+
+  const _BarChartPanel({required this.items, required this.paletteResolver});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return const SizedBox(height: 200, child: Center(child: Text('暂无数据')));
+    }
+
+    final maxAmount = items.fold<double>(
+      0,
+      (m, e) => e.amount > m ? e.amount : m,
+    );
+
+    return SizedBox(
+      height: 200,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxAmount * 1.2,
+          barGroups: items.asMap().entries.map((e) {
+            return BarChartGroupData(
+              x: e.key,
+              barRods: [
+                BarChartRodData(
+                  toY: e.value.amount,
+                  color: paletteResolver(e.key),
+                  width: items.length > 8 ? 12 : 20,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 56,
+                getTitlesWidget: (value, meta) {
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(
+                      AppTheme.formatDisplayAmountCompact(value),
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= items.length) return const SizedBox();
+                  return SideTitleWidget(
+                    meta: meta,
+                    child: Text(
+                      items[idx].name.length > 4
+                          ? '${items[idx].name.substring(0, 4)}…'
+                          : items[idx].name,
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          gridData: const FlGridData(drawVerticalLine: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullscreenBarChartPage extends StatefulWidget {
+  final ReportState state;
+
+  const _FullscreenBarChartPage({required this.state});
+
+  @override
+  State<_FullscreenBarChartPage> createState() =>
+      _FullscreenBarChartPageState();
+}
+
+class _FullscreenBarChartPageState extends State<_FullscreenBarChartPage> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('柱状图全屏')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: _BarChartPanel(
+            items: widget.state.summaryItems,
+            paletteResolver: (index) {
+              const palette = [
+                Color(0xFF5C6BC0),
+                Color(0xFF26A69A),
+                Color(0xFFEF5350),
+                Color(0xFFFF7043),
+                Color(0xFFAB47BC),
+                Color(0xFF42A5F5),
+                Color(0xFF66BB6A),
+                Color(0xFFFFA726),
+                Color(0xFF8D6E63),
+                Color(0xFF78909C),
+              ];
+              return palette[index % palette.length];
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ---------- Detail List ----------
 
 class _DetailList extends StatelessWidget {
@@ -554,7 +658,8 @@ class _DetailList extends StatelessWidget {
 
     return Column(
       children: data.map((point) {
-        final label = state.granularity == TimeGranularity.month ||
+        final label =
+            state.granularity == TimeGranularity.month ||
                 state.granularity == TimeGranularity.custom
             ? '${point.date.month}/${point.date.day}'
             : '${point.date.year}/${point.date.month}';
@@ -605,9 +710,9 @@ class _DetailList extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: pct,
-              backgroundColor: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
               color: palette[e.key % palette.length],
               minHeight: 6,
             ),
@@ -616,10 +721,16 @@ class _DetailList extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(amountVisible ? '¥${AppTheme.formatDisplayAmount(item.amount)}' : '****',
-                  style: const TextStyle(fontWeight: FontWeight.w500)),
-              Text(amountVisible ? '${(pct * 100).toStringAsFixed(1)}%' : '****',
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                amountVisible
+                    ? '¥${AppTheme.formatDisplayAmount(item.amount)}'
+                    : '****',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              Text(
+                amountVisible ? '${(pct * 100).toStringAsFixed(1)}%' : '****',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         );
