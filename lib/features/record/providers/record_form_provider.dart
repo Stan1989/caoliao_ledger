@@ -61,14 +61,13 @@ class RecordFormState {
       type: type ?? this.type,
       amount: amount ?? this.amount,
       categoryId: clearCategory ? null : (categoryId ?? this.categoryId),
-      categoryName:
-          clearCategory ? null : (categoryName ?? this.categoryName),
+      categoryName: clearCategory ? null : (categoryName ?? this.categoryName),
       accountId: accountId ?? this.accountId,
       accountName: accountName ?? this.accountName,
-      toAccountId:
-          clearToAccount ? null : (toAccountId ?? this.toAccountId),
-      toAccountName:
-          clearToAccount ? null : (toAccountName ?? this.toAccountName),
+      toAccountId: clearToAccount ? null : (toAccountId ?? this.toAccountId),
+      toAccountName: clearToAccount
+          ? null
+          : (toAccountName ?? this.toAccountName),
       memberId: memberId ?? this.memberId,
       memberName: memberName ?? this.memberName,
       projectId: clearProject ? null : (projectId ?? this.projectId),
@@ -237,10 +236,14 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
   }
 
   /// Called after a successful save. Persists defaults (create mode only),
-  /// then resets amount and date.
+  /// then resets amount, note, and date for next entry.
   Future<void> onSaveSuccess() async {
     await _saveDefaults();
-    state = state.copyWith(amount: 0, transactionDate: DateTime.now());
+    state = state.copyWith(
+      amount: 0,
+      note: '',
+      transactionDate: DateTime.now(),
+    );
   }
 
   void reset() {
@@ -252,5 +255,5 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
 /// Provider for the record form.
 final recordFormProvider =
     NotifierProvider<RecordFormNotifier, RecordFormState>(
-  RecordFormNotifier.new,
-);
+      RecordFormNotifier.new,
+    );
