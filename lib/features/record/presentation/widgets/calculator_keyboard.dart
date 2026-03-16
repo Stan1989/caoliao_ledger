@@ -30,6 +30,8 @@ class _CalculatorKeyboardState extends State<CalculatorKeyboard> {
           if (_expression.isNotEmpty) {
             _expression = _expression.substring(0, _expression.length - 1);
             _display = _expression.isEmpty ? '0' : _expression;
+            final result = _evaluate(_expression);
+            widget.onValueChanged(result ?? 0);
           }
         case '=':
           final result = _evaluate(_expression);
@@ -42,7 +44,8 @@ class _CalculatorKeyboardState extends State<CalculatorKeyboard> {
           // Prevent multiple decimal points in current number
           final lastNumber = _getLastNumber();
           if (!lastNumber.contains('.')) {
-            if (_expression.isEmpty || _isOperator(_expression[_expression.length - 1])) {
+            if (_expression.isEmpty ||
+                _isOperator(_expression[_expression.length - 1])) {
               _expression += '0.';
             } else {
               _expression += '.';
@@ -221,8 +224,7 @@ class _CalculatorKeyboardState extends State<CalculatorKeyboard> {
                   height: 48,
                   alignment: Alignment.center,
                   child: key == '⌫'
-                      ? Icon(Icons.backspace_outlined,
-                          size: 20, color: fgColor)
+                      ? Icon(Icons.backspace_outlined, size: 20, color: fgColor)
                       : Text(
                           key,
                           style: theme.textTheme.titleMedium?.copyWith(

@@ -81,6 +81,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   flutter_lints: ^6.0.0
 
@@ -104,6 +105,7 @@ flutter:
 
   assets:
     - assets/privacy_policy.md
+    - assets/image/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -135,3 +137,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+  android: "launcher_icon" # Android 生成的图标文件名，通常保持默认
+  ios: true # 开启 iOS 图标生成
+  image_path: "assets/icon.png" # 你的原图路径 (根据第一步实际路径修改)
+  min_sdk_android: 21 # 推荐设置，有助于生成更好的 Android 图标
