@@ -242,6 +242,7 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
     state = state.copyWith(
       amount: 0,
       note: '',
+      clearProject: true,
       transactionDate: DateTime.now(),
     );
   }

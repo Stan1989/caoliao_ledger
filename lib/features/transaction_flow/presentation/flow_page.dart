@@ -27,6 +27,46 @@ final _currentMonthProvider = NotifierProvider<_CurrentMonthNotifier, DateTime>(
   _CurrentMonthNotifier.new,
 );
 
+bool matchesAccountFilter(Transaction transaction, Set<int> accountIds) {
+  if (accountIds.isEmpty) return true;
+  return accountIds.contains(transaction.accountId) ||
+      (transaction.toAccountId != null &&
+          accountIds.contains(transaction.toAccountId));
+}
+
+String buildFlowItemTitle(
+  Transaction transaction,
+  Map<int, String> categoryNames,
+) {
+  final txnType = TransactionType.fromValue(transaction.type);
+  final normalizedNote = (transaction.note ?? '').trim();
+
+  switch (txnType) {
+    case TransactionType.transfer:
+      return '转账';
+    case TransactionType.expense:
+      if (normalizedNote.isNotEmpty) return normalizedNote;
+      final categoryName = transaction.categoryId != null
+          ? categoryNames[transaction.categoryId!]
+          : null;
+      if (categoryName != null && categoryName.trim().isNotEmpty) {
+        return categoryName;
+      }
+      return '支出';
+    case TransactionType.income:
+      if (normalizedNote.isNotEmpty) return normalizedNote;
+      final categoryName = transaction.categoryId != null
+          ? categoryNames[transaction.categoryId!]
+          : null;
+      if (categoryName != null && categoryName.trim().isNotEmpty) {
+        return categoryName;
+      }
+      return '收入';
+    case TransactionType.balanceAdjustment:
+      return normalizedNote.isNotEmpty ? normalizedNote : '余额变更';
+  }
+}
+
 /// Transaction flow page — monthly list with filters.
 class FlowPage extends ConsumerStatefulWidget {
   final int? accountId;
@@ -108,8 +148,11 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     // Pre-load account and member name maps
     final accountsAsync = ref.watch(allAccountsProvider);
     final membersAsync = ref.watch(membersProvider);
+    final expenseCategoriesAsync = ref.watch(expenseCategoriesProvider);
+    final incomeCategoriesAsync = ref.watch(incomeCategoriesProvider);
     final accountNames = <int, String>{};
     final memberNames = <int, String>{};
+    final categoryNames = <int, String>{};
     accountsAsync.whenData((list) {
       for (final a in list) {
         accountNames[a.id] = a.name;
@@ -118,6 +161,16 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     membersAsync.whenData((list) {
       for (final m in list) {
         memberNames[m.id] = m.name;
+      }
+    });
+    expenseCategoriesAsync.whenData((list) {
+      for (final c in list) {
+        categoryNames[c.id] = c.name;
+      }
+    });
+    incomeCategoriesAsync.whenData((list) {
+      for (final c in list) {
+        categoryNames[c.id] = c.name;
       }
     });
 
@@ -212,11 +265,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
 
                 // Dart-side filtering for multi-select dimensions
                 if (filter.accountIds.isNotEmpty) {
-                  transactions = transactions.where((t) {
-                    return filter.accountIds.contains(t.accountId) ||
-                        (t.toAccountId != null &&
-                            filter.accountIds.contains(t.toAccountId));
-                  }).toList();
+                  transactions = transactions
+                      .where((t) => matchesAccountFilter(t, filter.accountIds))
+                      .toList();
                 }
                 if (filter.memberIds.isNotEmpty) {
                   transactions = transactions.where((t) {
@@ -334,6 +385,7 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                             amountVisible: amountVisible,
                             accountNames: accountNames,
                             memberNames: memberNames,
+                            categoryNames: categoryNames,
                           );
                         },
                       ),
@@ -442,6 +494,7 @@ class _DayGroup extends StatelessWidget {
   final bool amountVisible;
   final Map<int, String> accountNames;
   final Map<int, String> memberNames;
+  final Map<int, String> categoryNames;
 
   const _DayGroup({
     required this.day,
@@ -449,6 +502,7 @@ class _DayGroup extends StatelessWidget {
     required this.amountVisible,
     required this.accountNames,
     required this.memberNames,
+    required this.categoryNames,
   });
 
   @override
@@ -501,6 +555,7 @@ class _DayGroup extends StatelessWidget {
             amountVisible: amountVisible,
             accountNames: accountNames,
             memberNames: memberNames,
+            categoryNames: categoryNames,
           ),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -551,12 +606,14 @@ class _TransactionItem extends StatelessWidget {
   final bool amountVisible;
   final Map<int, String> accountNames;
   final Map<int, String> memberNames;
+  final Map<int, String> categoryNames;
 
   const _TransactionItem({
     required this.transaction,
     required this.amountVisible,
     required this.accountNames,
     required this.memberNames,
+    required this.categoryNames,
   });
 
   @override
@@ -567,22 +624,18 @@ class _TransactionItem extends StatelessWidget {
       transaction.amount,
       transaction.type,
     );
+    final title = buildFlowItemTitle(transaction, categoryNames);
 
     IconData icon;
-    String title;
     switch (txnType) {
       case TransactionType.expense:
         icon = Icons.remove_circle_outline;
-        title = transaction.note ?? '支出';
       case TransactionType.income:
         icon = Icons.add_circle_outline;
-        title = transaction.note ?? '收入';
       case TransactionType.transfer:
         icon = Icons.swap_horiz;
-        title = '转账';
       case TransactionType.balanceAdjustment:
         icon = Icons.tune;
-        title = transaction.note ?? '余额变更';
     }
 
     final time = DateFormat('HH:mm').format(transaction.transactionDate);

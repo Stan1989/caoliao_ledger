@@ -7,7 +7,7 @@ import 'package:caoliao_ledger/features/record/providers/record_form_provider.da
 void main() {
   group('RecordFormNotifier', () {
     test(
-      'onSaveSuccess resets amount, note and transactionDate for next create',
+      'onSaveSuccess resets amount, note, project and transactionDate for next create',
       () async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -17,6 +17,7 @@ void main() {
 
         notifier.setAmount(123.45);
         notifier.setNote('午饭');
+        notifier.setProject(7, '项目A');
         notifier.setDate(DateTime(2020, 1, 2, 3, 4));
 
         await notifier.onSaveSuccess();
@@ -24,6 +25,8 @@ void main() {
         final state = container.read(recordFormProvider);
         expect(state.amount, 0);
         expect(state.note, '');
+        expect(state.projectId, isNull);
+        expect(state.projectName, isNull);
         expect(
           state.transactionDate.isAfter(before) ||
               state.transactionDate.isAtSameMomentAs(before),

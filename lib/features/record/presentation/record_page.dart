@@ -193,6 +193,7 @@ class _RecordPageState extends ConsumerState<RecordPage>
       } else {
         // --- Create mode: new transaction ---
         final ledgerId = ref.read(activeLedgerIdProvider)!;
+        final submitTime = DateTime.now();
 
         await repo.createTransaction(
           ledgerId: ledgerId,
@@ -204,7 +205,7 @@ class _RecordPageState extends ConsumerState<RecordPage>
           memberId: form.memberId,
           projectId: form.projectId,
           note: form.note,
-          transactionDate: form.transactionDate,
+          transactionDate: submitTime,
         );
 
         if (mounted) {
@@ -378,6 +379,9 @@ class _RecordPageState extends ConsumerState<RecordPage>
                   icon: Icons.access_time,
                   label: '时间',
                   value: _formatDate(form.transactionDate),
+                  actionLabel: '当前时间',
+                  onActionTap: () =>
+                      ref.read(recordFormProvider.notifier).setDate(DateTime.now()),
                   onTap: () => _showDateTimePicker(context),
                 ),
                 _FormRow(
@@ -571,12 +575,16 @@ class _FormRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
   final VoidCallback onTap;
 
   const _FormRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.actionLabel,
+    this.onActionTap,
     required this.onTap,
   });
 
@@ -588,6 +596,19 @@ class _FormRow extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (actionLabel != null && onActionTap != null) ...[
+            TextButton(
+              onPressed: onActionTap,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(actionLabel!),
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
             value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
