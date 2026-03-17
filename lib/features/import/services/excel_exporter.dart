@@ -21,7 +21,7 @@ class ExcelExportResult {
 /// The exported file uses the same sheet names, column order, and data format
 /// as the import module ([ExcelParser]), so exported files can be re-imported.
 class ExcelExporter {
-  static final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  static final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
 
   /// Export [transactions] to an .xlsx file.
   ///
@@ -49,6 +49,7 @@ class ExcelExporter {
     final expenses = <Transaction>[];
     final incomes = <Transaction>[];
     final transfers = <Transaction>[];
+    final adjustments = <Transaction>[];
 
     for (final t in transactions) {
       switch (TransactionType.fromValue(t.type)) {
@@ -59,8 +60,7 @@ class ExcelExporter {
         case TransactionType.transfer:
           transfers.add(t);
         case TransactionType.balanceAdjustment:
-          // Skip adjustments — not part of standard import/export
-          break;
+          adjustments.add(t);
       }
     }
 
@@ -101,6 +101,18 @@ class ExcelExporter {
       projectNames: projectNames,
       currency: currency,
     );
+    _fillSheet(
+      excel,
+      SheetType.balanceAdjustment.sheetName,
+      adjustments,
+      SheetType.balanceAdjustment,
+      accountNames: accountNames,
+      categoryNames: categoryNames,
+      parentCategoryNames: parentCategoryNames,
+      memberNames: memberNames,
+      projectNames: projectNames,
+      currency: currency,
+    );
 
     // Remove default "Sheet1" if it exists and is empty
     if (excel.tables.containsKey('Sheet1')) {
@@ -120,7 +132,8 @@ class ExcelExporter {
 
     await File(filePath).writeAsBytes(bytes);
 
-    final rowCount = expenses.length + incomes.length + transfers.length;
+    final rowCount =
+      expenses.length + incomes.length + transfers.length + adjustments.length;
     return ExcelExportResult(filePath: filePath, rowCount: rowCount);
   }
 

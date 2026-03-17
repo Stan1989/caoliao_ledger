@@ -149,6 +149,9 @@ class ExcelParser {
     if (value == null) return null;
 
     // The excel package may return DateCellValue or a string.
+    if (value is DateTimeCellValue) {
+      return value.asDateTimeLocal();
+    }
     if (value is DateCellValue) {
       return DateTime(value.year, value.month, value.day);
     }
@@ -160,6 +163,24 @@ class ExcelParser {
     // Try standard formats.
     final parsed = DateTime.tryParse(text);
     if (parsed != null) return parsed;
+
+    // Try explicit minute precision format.
+    final normalized = text.replaceAll('/', '-');
+    final minuteParts = normalized.split(' ');
+    if (minuteParts.length == 2) {
+      final dateParts = minuteParts[0].split('-');
+      final timeParts = minuteParts[1].split(':');
+      if (dateParts.length == 3 && timeParts.length >= 2) {
+        final y = int.tryParse(dateParts[0]);
+        final m = int.tryParse(dateParts[1]);
+        final d = int.tryParse(dateParts[2]);
+        final h = int.tryParse(timeParts[0]);
+        final min = int.tryParse(timeParts[1]);
+        if (y != null && m != null && d != null && h != null && min != null) {
+          return DateTime(y, m, d, h, min);
+        }
+      }
+    }
 
     // Try "yyyy/MM/dd" format.
     final parts = text.split('/');

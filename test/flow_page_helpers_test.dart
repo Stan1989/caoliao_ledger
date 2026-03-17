@@ -38,11 +38,11 @@ void main() {
       final expense = _txn(type: TransactionType.expense.value, note: ' 午饭 ');
       final income = _txn(type: TransactionType.income.value, note: '工资');
 
-      expect(buildFlowItemTitle(expense, const {}), '午饭');
-      expect(buildFlowItemTitle(income, const {}), '工资');
+      expect(buildFlowItemTitle(expense, const {}, const {}), '午饭');
+      expect(buildFlowItemTitle(income, const {}, const {}), '工资');
     });
 
-    test('expense/income fallback to category when note is blank', () {
+    test('expense/income fallback to subcategory when note is blank', () {
       final expense = _txn(
         type: TransactionType.expense.value,
         note: '   ',
@@ -54,24 +54,30 @@ void main() {
         categoryId: 22,
       );
 
-      expect(buildFlowItemTitle(expense, const {11: '餐饮'}), '餐饮');
-      expect(buildFlowItemTitle(income, const {22: '工资'}), '工资');
+      expect(
+        buildFlowItemTitle(expense, const {11: '餐饮-午餐'}, const {11}),
+        '餐饮-午餐',
+      );
+      expect(
+        buildFlowItemTitle(income, const {22: '工资-奖金'}, const {22}),
+        '工资-奖金',
+      );
     });
 
-    test('expense/income fallback to type default when category missing', () {
+    test('expense/income fallback to type default when no subcategory', () {
       final expense = _txn(
         type: TransactionType.expense.value,
         note: null,
-        categoryId: null,
+        categoryId: 10,
       );
       final income = _txn(
         type: TransactionType.income.value,
         note: ' ',
-        categoryId: 999,
+        categoryId: 20,
       );
 
-      expect(buildFlowItemTitle(expense, const {}), '支出');
-      expect(buildFlowItemTitle(income, const {}), '收入');
+      expect(buildFlowItemTitle(expense, const {10: '餐饮'}, const {}), '支出');
+      expect(buildFlowItemTitle(income, const {20: '工资'}, const {}), '收入');
     });
 
     test('transfer title is always fixed to 转账', () {
@@ -86,8 +92,8 @@ void main() {
         toAccountId: 2,
       );
 
-      expect(buildFlowItemTitle(transferWithNote, const {}), '转账');
-      expect(buildFlowItemTitle(transferNoNote, const {}), '转账');
+      expect(buildFlowItemTitle(transferWithNote, const {}, const {}), '转账');
+      expect(buildFlowItemTitle(transferNoNote, const {}, const {}), '转账');
     });
   });
 

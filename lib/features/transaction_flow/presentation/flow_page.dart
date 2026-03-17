@@ -27,6 +27,12 @@ final _currentMonthProvider = NotifierProvider<_CurrentMonthNotifier, DateTime>(
   _CurrentMonthNotifier.new,
 );
 
+final _allCategoriesProvider = FutureProvider<List<Category>>((ref) async {
+  final ledgerId = ref.watch(activeLedgerIdProvider);
+  if (ledgerId == null) return const [];
+  return ref.watch(categoryRepositoryProvider).getByLedger(ledgerId);
+});
+
 bool matchesAccountFilter(Transaction transaction, Set<int> accountIds) {
   if (accountIds.isEmpty) return true;
   return accountIds.contains(transaction.accountId) ||
@@ -37,6 +43,7 @@ bool matchesAccountFilter(Transaction transaction, Set<int> accountIds) {
 String buildFlowItemTitle(
   Transaction transaction,
   Map<int, String> categoryNames,
+  Set<int> subcategoryIds,
 ) {
   final txnType = TransactionType.fromValue(transaction.type);
   final normalizedNote = (transaction.note ?? '').trim();
@@ -46,7 +53,8 @@ String buildFlowItemTitle(
       return '转账';
     case TransactionType.expense:
       if (normalizedNote.isNotEmpty) return normalizedNote;
-      final categoryName = transaction.categoryId != null
+      final categoryName = transaction.categoryId != null &&
+              subcategoryIds.contains(transaction.categoryId!)
           ? categoryNames[transaction.categoryId!]
           : null;
       if (categoryName != null && categoryName.trim().isNotEmpty) {
@@ -55,7 +63,8 @@ String buildFlowItemTitle(
       return '支出';
     case TransactionType.income:
       if (normalizedNote.isNotEmpty) return normalizedNote;
-      final categoryName = transaction.categoryId != null
+      final categoryName = transaction.categoryId != null &&
+              subcategoryIds.contains(transaction.categoryId!)
           ? categoryNames[transaction.categoryId!]
           : null;
       if (categoryName != null && categoryName.trim().isNotEmpty) {
@@ -148,11 +157,11 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     // Pre-load account and member name maps
     final accountsAsync = ref.watch(allAccountsProvider);
     final membersAsync = ref.watch(membersProvider);
-    final expenseCategoriesAsync = ref.watch(expenseCategoriesProvider);
-    final incomeCategoriesAsync = ref.watch(incomeCategoriesProvider);
+    final categoriesAsync = ref.watch(_allCategoriesProvider);
     final accountNames = <int, String>{};
     final memberNames = <int, String>{};
     final categoryNames = <int, String>{};
+    final subcategoryIds = <int>{};
     accountsAsync.whenData((list) {
       for (final a in list) {
         accountNames[a.id] = a.name;
@@ -163,14 +172,12 @@ class _FlowPageState extends ConsumerState<FlowPage> {
         memberNames[m.id] = m.name;
       }
     });
-    expenseCategoriesAsync.whenData((list) {
+    categoriesAsync.whenData((list) {
       for (final c in list) {
         categoryNames[c.id] = c.name;
-      }
-    });
-    incomeCategoriesAsync.whenData((list) {
-      for (final c in list) {
-        categoryNames[c.id] = c.name;
+        if (c.parentId != null) {
+          subcategoryIds.add(c.id);
+        }
       }
     });
 
@@ -386,6 +393,7 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                             accountNames: accountNames,
                             memberNames: memberNames,
                             categoryNames: categoryNames,
+                            subcategoryIds: subcategoryIds,
                           );
                         },
                       ),
@@ -495,6 +503,7 @@ class _DayGroup extends StatelessWidget {
   final Map<int, String> accountNames;
   final Map<int, String> memberNames;
   final Map<int, String> categoryNames;
+  final Set<int> subcategoryIds;
 
   const _DayGroup({
     required this.day,
@@ -503,6 +512,7 @@ class _DayGroup extends StatelessWidget {
     required this.accountNames,
     required this.memberNames,
     required this.categoryNames,
+    required this.subcategoryIds,
   });
 
   @override
@@ -556,6 +566,7 @@ class _DayGroup extends StatelessWidget {
             accountNames: accountNames,
             memberNames: memberNames,
             categoryNames: categoryNames,
+            subcategoryIds: subcategoryIds,
           ),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -607,6 +618,7 @@ class _TransactionItem extends StatelessWidget {
   final Map<int, String> accountNames;
   final Map<int, String> memberNames;
   final Map<int, String> categoryNames;
+  final Set<int> subcategoryIds;
 
   const _TransactionItem({
     required this.transaction,
@@ -614,6 +626,7 @@ class _TransactionItem extends StatelessWidget {
     required this.accountNames,
     required this.memberNames,
     required this.categoryNames,
+    required this.subcategoryIds,
   });
 
   @override
@@ -624,7 +637,11 @@ class _TransactionItem extends StatelessWidget {
       transaction.amount,
       transaction.type,
     );
-    final title = buildFlowItemTitle(transaction, categoryNames);
+    final title = buildFlowItemTitle(
+      transaction,
+      categoryNames,
+      subcategoryIds,
+    );
 
     IconData icon;
     switch (txnType) {
