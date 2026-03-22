@@ -13,6 +13,14 @@ import 'widgets/account_selector.dart';
 import 'widgets/member_selector.dart';
 import 'widgets/project_selector.dart';
 
+DateTime resolveSubmitTransactionDate({
+  required bool isEditMode,
+  required DateTime formTransactionDate,
+}) {
+  // Both create and edit flows persist the form-selected datetime.
+  return formTransactionDate;
+}
+
 /// Record page — add or edit expense, income, or transfer.
 class RecordPage extends ConsumerStatefulWidget {
   /// If non-null, the page opens in edit mode for this transaction.
@@ -179,7 +187,10 @@ class _RecordPageState extends ConsumerState<RecordPage>
           memberId: Value(form.memberId),
           projectId: Value(form.projectId),
           note: Value(form.note),
-          transactionDate: form.transactionDate,
+          transactionDate: resolveSubmitTransactionDate(
+            isEditMode: true,
+            formTransactionDate: form.transactionDate,
+          ),
         );
 
         await repo.updateTransaction(updated);
@@ -193,7 +204,6 @@ class _RecordPageState extends ConsumerState<RecordPage>
       } else {
         // --- Create mode: new transaction ---
         final ledgerId = ref.read(activeLedgerIdProvider)!;
-        final submitTime = DateTime.now();
 
         await repo.createTransaction(
           ledgerId: ledgerId,
@@ -205,7 +215,10 @@ class _RecordPageState extends ConsumerState<RecordPage>
           memberId: form.memberId,
           projectId: form.projectId,
           note: form.note,
-          transactionDate: submitTime,
+          transactionDate: resolveSubmitTransactionDate(
+            isEditMode: false,
+            formTransactionDate: form.transactionDate,
+          ),
         );
 
         if (mounted) {
