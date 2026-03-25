@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:caoliao_ledger/core/models/enums.dart';
@@ -72,6 +73,61 @@ void main() {
         transactionTypes: {TransactionType.expense},
       );
       expect(filter.isActive, isTrue);
+    });
+  });
+
+  group('FlowFilterState.hasDateOverride', () {
+    test('returns false for default empty state', () {
+      const filter = FlowFilterState();
+      expect(filter.hasDateOverride, isFalse);
+    });
+
+    test('returns false for account-only filter', () {
+      const filter = FlowFilterState(accountIds: {1, 2});
+      expect(filter.hasDateOverride, isFalse);
+    });
+
+    test('returns false for member-only filter', () {
+      const filter = FlowFilterState(memberIds: {3});
+      expect(filter.hasDateOverride, isFalse);
+    });
+
+    test('returns false for project-only filter', () {
+      const filter = FlowFilterState(projectIds: {5});
+      expect(filter.hasDateOverride, isFalse);
+    });
+
+    test('returns false for type-only filter', () {
+      const filter = FlowFilterState(
+        transactionTypes: {TransactionType.expense, TransactionType.transfer},
+      );
+      expect(filter.hasDateOverride, isFalse);
+    });
+
+    test('returns true when dateRange is set', () {
+      final filter = FlowFilterState(
+        dateRange: DateTimeRange(
+          start: DateTime(2026, 1, 1),
+          end: DateTime(2026, 3, 25),
+        ),
+      );
+      expect(filter.hasDateOverride, isTrue);
+    });
+
+    test('returns true when minAmount is set', () {
+      const filter = FlowFilterState(minAmount: 1000);
+      expect(filter.hasDateOverride, isTrue);
+    });
+
+    test('returns true when dateRange combined with dimension filters', () {
+      final filter = FlowFilterState(
+        accountIds: const {1},
+        dateRange: DateTimeRange(
+          start: DateTime(2026, 1, 1),
+          end: DateTime(2026, 3, 25),
+        ),
+      );
+      expect(filter.hasDateOverride, isTrue);
     });
   });
 }

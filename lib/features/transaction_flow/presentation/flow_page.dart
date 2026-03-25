@@ -50,7 +50,7 @@ String buildFlowItemTitle(
 
   switch (txnType) {
     case TransactionType.transfer:
-      return '转账';
+      return normalizedNote.isNotEmpty ? normalizedNote : '转账';
     case TransactionType.expense:
       if (normalizedNote.isNotEmpty) return normalizedNote;
       final categoryName = transaction.categoryId != null &&
@@ -134,20 +134,22 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     final amountVisible = ref.watch(amountVisibilityProvider);
     final filter = _currentFilter;
     final filterActive = filter.isActive;
+    final hasDateOverride = filter.hasDateOverride;
 
     // Determine query date range
     final DateTime start;
     final DateTime end;
-    if (filterActive && filter.dateRange != null) {
+    if (filter.dateRange != null) {
       start = filter.dateRange!.start;
       end = filter.dateRange!.end.add(const Duration(days: 1));
-    } else if (!filterActive) {
-      start = currentMonth;
-      end = DateTime(currentMonth.year, currentMonth.month + 1);
-    } else {
-      // Filter active but no date range — query all
+    } else if (filter.minAmount != null) {
+      // Min-amount filter queries all time
       start = DateTime(2000);
       end = DateTime(2100);
+    } else {
+      // No date override — use current month (even with dimension filters)
+      start = currentMonth;
+      end = DateTime(currentMonth.year, currentMonth.month + 1);
     }
 
     final txnStream = ref
@@ -205,8 +207,8 @@ class _FlowPageState extends ConsumerState<FlowPage> {
       ),
       body: Column(
         children: [
-          // Month navigation (hidden when filter is active)
-          if (!filterActive)
+          // Month navigation (hidden only when date override is active)
+          if (!hasDateOverride)
             _MonthNavigator(
               current: currentMonth,
               onPrevious: () {
@@ -223,9 +225,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                   ref.read(_currentMonthProvider.notifier).set(next);
                 }
               },
-            )
-          else
-            // Filter active indicator
+            ),
+          // Filter active indicator
+          if (filterActive)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(

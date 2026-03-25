@@ -80,10 +80,15 @@ void main() {
       expect(buildFlowItemTitle(income, const {20: '工资'}, const {}), '收入');
     });
 
-    test('transfer title is always fixed to 转账', () {
+    test('transfer uses note when non-empty, otherwise defaults to 转账', () {
       final transferWithNote = _txn(
         type: TransactionType.transfer.value,
         note: '任意备注',
+        toAccountId: 2,
+      );
+      final transferBlankNote = _txn(
+        type: TransactionType.transfer.value,
+        note: '   ',
         toAccountId: 2,
       );
       final transferNoNote = _txn(
@@ -92,7 +97,8 @@ void main() {
         toAccountId: 2,
       );
 
-      expect(buildFlowItemTitle(transferWithNote, const {}, const {}), '转账');
+      expect(buildFlowItemTitle(transferWithNote, const {}, const {}), '任意备注');
+      expect(buildFlowItemTitle(transferBlankNote, const {}, const {}), '转账');
       expect(buildFlowItemTitle(transferNoNote, const {}, const {}), '转账');
     });
   });

@@ -68,6 +68,9 @@ class FlowFilterState {
       transactionTypes.isNotEmpty ||
       minAmount != null;
 
+  /// True when date range or min amount is set — these override month navigation.
+  bool get hasDateOverride => dateRange != null || minAmount != null;
+
   FlowFilterState copyWith({
     DateTimeRange? Function()? dateRange,
     Set<int>? accountIds,
