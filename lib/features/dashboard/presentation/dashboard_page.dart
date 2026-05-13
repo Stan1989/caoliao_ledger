@@ -7,6 +7,61 @@ import '../../../core/database/app_database.dart';
 import '../../../core/models/enums.dart';
 import '../../../app/theme.dart';
 
+class DashboardSummaryData {
+  final double expense;
+  final double income;
+
+  const DashboardSummaryData({required this.expense, required this.income});
+
+  double get balance => income - expense;
+}
+
+final dashboardNowProvider = Provider<DateTime>((ref) => DateTime.now());
+final dashboardShowBackgroundProvider = Provider<bool>((ref) => true);
+
+({DateTime start, DateTime end}) currentWeekRange(DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  final start = today.subtract(Duration(days: now.weekday - DateTime.monday));
+  return (start: start, end: today.add(const Duration(days: 1)));
+}
+
+({DateTime start, DateTime end}) currentMonthRange(DateTime now) {
+  final start = DateTime(now.year, now.month);
+  return (start: start, end: DateTime(now.year, now.month + 1));
+}
+
+DashboardSummaryData calculateDashboardSummary(List<Transaction> transactions) {
+  double totalExpense = 0;
+  double totalIncome = 0;
+
+  for (final transaction in transactions) {
+    final type = TransactionType.fromValue(transaction.type);
+    switch (type) {
+      case TransactionType.expense:
+        totalExpense += transaction.amount;
+      case TransactionType.income:
+        totalIncome += transaction.amount;
+      case TransactionType.transfer:
+      case TransactionType.balanceAdjustment:
+        break;
+    }
+  }
+
+  return DashboardSummaryData(expense: totalExpense, income: totalIncome);
+}
+
+final dashboardSummaryProvider =
+    StreamProvider.family<DashboardSummaryData, (int, DateTime, DateTime)>((
+      ref,
+      params,
+    ) {
+      final (ledgerId, start, end) = params;
+      return ref
+          .watch(transactionRepositoryProvider)
+          .watchByLedger(ledgerId, startDate: start, endDate: end)
+          .map(calculateDashboardSummary);
+    });
+
 /// Dashboard / home page — shows summary for current month.
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -18,13 +73,17 @@ class DashboardPage extends ConsumerWidget {
       return const Scaffold(body: Center(child: Text('请先选择账本')));
     }
 
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month);
-    final end = DateTime(now.year, now.month + 1);
+    final now = ref.watch(dashboardNowProvider);
+    final showBackground = ref.watch(dashboardShowBackgroundProvider);
+    final weekRange = currentWeekRange(now);
+    final monthRange = currentMonthRange(now);
     final amountVisible = ref.watch(amountVisibilityProvider);
 
-    final transactionsAsync = ref.watch(
-      _monthlyTransactionsProvider((ledgerId, start, end)),
+    final weeklySummaryAsync = ref.watch(
+      dashboardSummaryProvider((ledgerId, weekRange.start, weekRange.end)),
+    );
+    final monthlySummaryAsync = ref.watch(
+      dashboardSummaryProvider((ledgerId, monthRange.start, monthRange.end)),
     );
 
     return Scaffold(
@@ -47,24 +106,10 @@ class DashboardPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: transactionsAsync.when(
-        data: (transactions) {
-          double totalExpense = 0;
-          double totalIncome = 0;
-
-          for (final t in transactions) {
-            final type = TransactionType.fromValue(t.type);
-            switch (type) {
-              case TransactionType.expense:
-                totalExpense += t.amount;
-              case TransactionType.income:
-                totalIncome += t.amount;
-              case TransactionType.transfer:
-              case TransactionType.balanceAdjustment:
-                break;
-            }
-          }
-
+      body: weeklySummaryAsync.when(
+        data: (weeklySummary) {
+          return monthlySummaryAsync.when(
+            data: (monthlySummary) {
           final dpr = MediaQuery.devicePixelRatioOf(context);
 
           return LayoutBuilder(
@@ -76,14 +121,15 @@ class DashboardPage extends ConsumerWidget {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image(
-                    image: ResizeImage(
-                      const AssetImage('assets/image/home_bg.png'),
-                      width: bgCacheWidth,
+                  if (showBackground)
+                    Image(
+                      image: ResizeImage(
+                        const AssetImage('assets/image/home_bg.png'),
+                        width: bgCacheWidth,
+                      ),
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.low,
                     ),
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                  ),
                   ColoredBox(
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.black.withValues(alpha: 0.45)
@@ -94,53 +140,16 @@ class DashboardPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Monthly summary card
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${now.year}年${now.month}月',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _SummaryItem(
-                                        label: '支出',
-                                        amount: totalExpense,
-                                        color: AppTheme.expenseColor,
-                                        amountVisible: amountVisible,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: _SummaryItem(
-                                        label: '收入',
-                                        amount: totalIncome,
-                                        color: AppTheme.incomeColor,
-                                        amountVisible: amountVisible,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: _SummaryItem(
-                                        label: '结余',
-                                        amount: totalIncome - totalExpense,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
-                                        amountVisible: amountVisible,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                        _SummaryCard(
+                          title: '本周',
+                          summary: weeklySummary,
+                          amountVisible: amountVisible,
+                        ),
+                        const SizedBox(height: 16),
+                        _SummaryCard(
+                          title: '${now.year}年${now.month}月',
+                          summary: monthlySummary,
+                          amountVisible: amountVisible,
                         ),
                         const SizedBox(height: 16),
                         // Quick actions
@@ -179,6 +188,10 @@ class DashboardPage extends ConsumerWidget {
               );
             },
           );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('加载失败：$e')),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败：$e')),
@@ -187,17 +200,61 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
-/// Provider for monthly transactions.
-final _monthlyTransactionsProvider =
-    StreamProvider.family<List<Transaction>, (int, DateTime, DateTime)>((
-      ref,
-      params,
-    ) {
-      final (ledgerId, start, end) = params;
-      return ref
-          .watch(transactionRepositoryProvider)
-          .watchByLedger(ledgerId, startDate: start, endDate: end);
-    });
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final DashboardSummaryData summary;
+  final bool amountVisible;
+
+  const _SummaryCard({
+    required this.title,
+    required this.summary,
+    required this.amountVisible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryItem(
+                    label: '支出',
+                    amount: summary.expense,
+                    color: AppTheme.expenseColor,
+                    amountVisible: amountVisible,
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryItem(
+                    label: '收入',
+                    amount: summary.income,
+                    color: AppTheme.incomeColor,
+                    amountVisible: amountVisible,
+                  ),
+                ),
+                Expanded(
+                  child: _SummaryItem(
+                    label: '结余',
+                    amount: summary.balance,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    amountVisible: amountVisible,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _SummaryItem extends StatelessWidget {
   final String label;

@@ -113,6 +113,15 @@ final activeProjectsProvider = StreamProvider<List<Project>>((ref) {
   return ref.watch(appDatabaseProvider).projectDao.watchNonArchived(ledgerId);
 });
 
+/// Watch cumulative expense totals per project for the active ledger.
+final projectExpenseTotalsProvider = StreamProvider<Map<int, double>>((ref) {
+  final ledgerId = ref.watch(activeLedgerIdProvider);
+  if (ledgerId == null) return const Stream.empty();
+  return ref.watch(appDatabaseProvider).projectDao.watchExpenseTotalsByLedger(
+    ledgerId,
+  );
+});
+
 /// ReportDao provider for aggregation queries.
 final reportDaoProvider = Provider<ReportDao>((ref) {
   final db = ref.watch(appDatabaseProvider);

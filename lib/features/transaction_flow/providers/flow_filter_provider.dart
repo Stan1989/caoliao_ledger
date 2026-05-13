@@ -9,6 +9,15 @@ const Set<TransactionType> kFlowSelectableTypes = {
   TransactionType.transfer,
 };
 
+const List<({double value, String label})> kFlowAmountPresets = [
+  (value: 200.0, label: '>200'),
+  (value: 500.0, label: '>500'),
+  (value: 1000.0, label: '>1000'),
+  (value: 3000.0, label: '>3000'),
+  (value: 5000.0, label: '>5000'),
+  (value: 10000.0, label: '>10000'),
+];
+
 String flowFilterTypeSummary(Set<TransactionType> selectedTypes) {
   if (selectedTypes.isEmpty ||
       selectedTypes.length == kFlowSelectableTypes.length) {
@@ -40,6 +49,31 @@ bool matchesFlowFilterTransactionType(FlowFilterState filter, int rawType) {
     return true;
   }
   return filter.transactionTypes.contains(TransactionType.fromValue(rawType));
+}
+
+({DateTime start, DateTime end}) resolveFlowQueryRange(
+  DateTime currentMonth,
+  FlowFilterState filter,
+) {
+  if (filter.dateRange != null) {
+    return (
+      start: filter.dateRange!.start,
+      end: filter.dateRange!.end.add(const Duration(days: 1)),
+    );
+  }
+
+  if (filter.minAmount != null) {
+    return (start: DateTime(2000), end: DateTime(2100));
+  }
+
+  return (
+    start: currentMonth,
+    end: DateTime(currentMonth.year, currentMonth.month + 1),
+  );
+}
+
+double? toggleFlowAmountPreset(double? currentAmount, double tappedAmount) {
+  return currentAmount == tappedAmount ? null : tappedAmount;
 }
 
 /// Filter state for the flow page.

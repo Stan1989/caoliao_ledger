@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../app_database.dart';
 import '../tables/projects.dart';
+import '../../models/enums.dart';
 
 part 'project_dao.g.dart';
 
@@ -22,6 +23,33 @@ class ProjectDao extends DatabaseAccessor<AppDatabase> with _$ProjectDaoMixin {
                   t.isArchived.equals(false),
             ))
           .watch();
+
+    /// Watch cumulative expense totals by project for a ledger.
+    Stream<Map<int, double>> watchExpenseTotalsByLedger(int ledgerId) {
+        return customSelect(
+            '''
+            SELECT p.id AS project_id, COALESCE(SUM(t.amount), 0) AS total_amount
+            FROM projects p
+            LEFT JOIN transactions t
+                ON t.project_id = p.id
+             AND t.ledger_id = ?
+             AND t.type = ?
+            WHERE p.ledger_id = ?
+            GROUP BY p.id
+            ''',
+            variables: [
+                Variable.withInt(ledgerId),
+                Variable.withInt(TransactionType.expense.value),
+                Variable.withInt(ledgerId),
+            ],
+            readsFrom: {projects, attachedDatabase.transactions},
+        ).watch().map((rows) {
+            return {
+                for (final row in rows)
+                    row.read<int>('project_id'): row.read<double>('total_amount'),
+            };
+        });
+    }
 
   /// Get a project by ID.
   Future<Project?> getById(int id) =>

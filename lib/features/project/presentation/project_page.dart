@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
 
+import '../../../app/theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 
@@ -19,6 +20,7 @@ class ProjectPage extends ConsumerWidget {
     }
 
     final projectsAsync = ref.watch(projectsProvider);
+    final expenseTotalsAsync = ref.watch(projectExpenseTotalsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('项目管理')),
@@ -54,62 +56,83 @@ class ProjectPage extends ConsumerWidget {
             );
           }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: projects.map((p) {
-              final isArchived = p.isArchived;
-              return Card(
-                color: isArchived
-                    ? Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.5)
-                    : null,
-                child: ListTile(
-                  leading: Icon(
-                    Icons.folder_outlined,
+          return expenseTotalsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('加载失败：$e')),
+            data: (expenseTotals) {
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: projects.map((p) {
+                  final isArchived = p.isArchived;
+                  final expenseTotal = expenseTotals[p.id] ?? 0;
+                  return Card(
                     color: isArchived
-                        ? Theme.of(context).colorScheme.outline
-                        : Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(
-                    p.name,
-                    style: isArchived
-                        ? TextStyle(
-                            color: Theme.of(context).colorScheme.outline,
-                          )
+                        ? Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5)
                         : null,
-                  ),
-                  trailing: isArchived
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '已归档',
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color:
-                                          Theme.of(context).colorScheme.outline,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.folder_outlined,
+                        color: isArchived
+                            ? Theme.of(context).colorScheme.outline
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        p.name,
+                        style: isArchived
+                            ? TextStyle(
+                                color: Theme.of(context).colorScheme.outline,
+                              )
+                            : null,
+                      ),
+                      subtitle: Text(
+                        '支出 ¥${AppTheme.formatDisplayAmount(expenseTotal)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isArchived
+                              ? Theme.of(context).colorScheme.outline
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: isArchived
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '已归档',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline,
                                     ),
-                          ),
-                        )
-                      : null,
-                  onTap: isArchived
-                      ? () => _confirmRestore(context, ref, p)
-                      : () => _showEditProject(context, ref, p),
-                  onLongPress:
-                      isArchived ? null : () => _confirmArchive(context, ref, p),
-                ),
+                              ),
+                            )
+                          : null,
+                      onTap: isArchived
+                          ? () => _confirmRestore(context, ref, p)
+                          : () => _showEditProject(context, ref, p),
+                      onLongPress: isArchived
+                          ? null
+                          : () => _confirmArchive(context, ref, p),
+                    ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           );
         },
       ),

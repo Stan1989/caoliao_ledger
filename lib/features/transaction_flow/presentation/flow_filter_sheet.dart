@@ -39,13 +39,6 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
   late Set<TransactionType> _transactionTypes;
   late double? _minAmount;
 
-  static const _amountPresets = [
-    (1000.0, '>¥1,000'),
-    (3000.0, '>¥3,000'),
-    (5000.0, '>¥5,000'),
-    (10000.0, '>¥10,000'),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -233,15 +226,19 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
-                    children: _amountPresets.map((preset) {
-                      final (value, label) = preset;
+                    children: kFlowAmountPresets.map((preset) {
+                      final value = preset.value;
+                      final label = preset.label;
                       final selected = _minAmount == value;
                       return ChoiceChip(
                         label: Text(label),
                         selected: selected,
                         onSelected: (_) {
                           setState(() {
-                            _minAmount = selected ? null : value;
+                            _minAmount = toggleFlowAmountPreset(
+                              _minAmount,
+                              value,
+                            );
                           });
                         },
                       );

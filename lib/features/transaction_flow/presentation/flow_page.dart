@@ -136,21 +136,9 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     final filterActive = filter.isActive;
     final hasDateOverride = filter.hasDateOverride;
 
-    // Determine query date range
-    final DateTime start;
-    final DateTime end;
-    if (filter.dateRange != null) {
-      start = filter.dateRange!.start;
-      end = filter.dateRange!.end.add(const Duration(days: 1));
-    } else if (filter.minAmount != null) {
-      // Min-amount filter queries all time
-      start = DateTime(2000);
-      end = DateTime(2100);
-    } else {
-      // No date override — use current month (even with dimension filters)
-      start = currentMonth;
-      end = DateTime(currentMonth.year, currentMonth.month + 1);
-    }
+    final queryRange = resolveFlowQueryRange(currentMonth, filter);
+    final start = queryRange.start;
+    final end = queryRange.end;
 
     final txnStream = ref
         .watch(transactionRepositoryProvider)
