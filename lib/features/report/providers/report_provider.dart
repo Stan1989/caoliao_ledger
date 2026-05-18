@@ -3,6 +3,66 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/daos/report_dao.dart';
 import '../../../core/providers/database_provider.dart';
 
+class ReportComparisonValue {
+  final double baselineAmount;
+  final double deltaAmount;
+  final double? deltaPercent;
+
+  const ReportComparisonValue({
+    required this.baselineAmount,
+    required this.deltaAmount,
+    required this.deltaPercent,
+  });
+}
+
+class ReportComparisonSummary {
+  final bool supported;
+  final ReportComparisonValue? periodOverPeriod;
+  final ReportComparisonValue? yearOverYear;
+
+  const ReportComparisonSummary({
+    required this.supported,
+    this.periodOverPeriod,
+    this.yearOverYear,
+  });
+
+  static const unsupported = ReportComparisonSummary(supported: false);
+}
+
+ReportComparisonValue buildReportComparisonValue(
+  double currentAmount,
+  double baselineAmount,
+) {
+  final deltaAmount = currentAmount - baselineAmount;
+  return ReportComparisonValue(
+    baselineAmount: baselineAmount,
+    deltaAmount: deltaAmount,
+    deltaPercent: baselineAmount == 0
+        ? null
+        : (deltaAmount / baselineAmount) * 100,
+  );
+}
+
+ReportComparisonSummary buildReportComparisonSummary({
+  required bool supported,
+  required double currentAmount,
+  required double previousAmount,
+  required double previousYearAmount,
+}) {
+  if (!supported) {
+    return ReportComparisonSummary.unsupported;
+  }
+
+  return ReportComparisonSummary(
+    supported: true,
+    periodOverPeriod: buildReportComparisonValue(currentAmount, previousAmount),
+    yearOverYear: buildReportComparisonValue(
+      currentAmount,
+      previousYearAmount,
+    ),
+  );
+}
+
 /// Time granularity for report range.
 enum TimeGranularity { month, quarter, year, custom }
 
@@ -24,6 +84,8 @@ class ReportState {
   final bool isLoading;
   final double totalExpense;
   final double totalIncome;
+  final ReportComparisonSummary expenseComparison;
+  final ReportComparisonSummary incomeComparison;
   final List<ReportSummaryItem> summaryItems;
   final List<TrendDataPoint> trendData;
 
@@ -38,6 +100,8 @@ class ReportState {
     this.isLoading = false,
     this.totalExpense = 0,
     this.totalIncome = 0,
+    this.expenseComparison = ReportComparisonSummary.unsupported,
+    this.incomeComparison = ReportComparisonSummary.unsupported,
     this.summaryItems = const [],
     this.trendData = const [],
   });
@@ -53,6 +117,8 @@ class ReportState {
     bool? isLoading,
     double? totalExpense,
     double? totalIncome,
+    ReportComparisonSummary? expenseComparison,
+    ReportComparisonSummary? incomeComparison,
     List<ReportSummaryItem>? summaryItems,
     List<TrendDataPoint>? trendData,
   }) {
@@ -67,10 +133,14 @@ class ReportState {
       isLoading: isLoading ?? this.isLoading,
       totalExpense: totalExpense ?? this.totalExpense,
       totalIncome: totalIncome ?? this.totalIncome,
+      expenseComparison: expenseComparison ?? this.expenseComparison,
+      incomeComparison: incomeComparison ?? this.incomeComparison,
       summaryItems: summaryItems ?? this.summaryItems,
       trendData: trendData ?? this.trendData,
     );
   }
+
+  bool get supportsComparison => granularity != TimeGranularity.custom;
 
   /// Compute the start date of the current time range.
   DateTime get startDate {
@@ -105,6 +175,44 @@ class ReportState {
         return DateTime(referenceDate.year + 1);
       case TimeGranularity.custom:
         return referenceDate.add(const Duration(days: 1));
+    }
+  }
+
+  ({DateTime start, DateTime end})? get previousPeriodRange {
+    if (!supportsComparison) return null;
+
+    switch (granularity) {
+      case TimeGranularity.month:
+        final start = DateTime(referenceDate.year, referenceDate.month - 1);
+        return (start: start, end: DateTime(start.year, start.month + 1));
+      case TimeGranularity.quarter:
+        final currentStart = startDate;
+        final start = DateTime(currentStart.year, currentStart.month - 3);
+        return (start: start, end: DateTime(start.year, start.month + 3));
+      case TimeGranularity.year:
+        final start = DateTime(referenceDate.year - 1);
+        return (start: start, end: DateTime(referenceDate.year));
+      case TimeGranularity.custom:
+        return null;
+    }
+  }
+
+  ({DateTime start, DateTime end})? get samePeriodLastYearRange {
+    if (!supportsComparison) return null;
+
+    switch (granularity) {
+      case TimeGranularity.month:
+        final start = DateTime(referenceDate.year - 1, referenceDate.month);
+        return (start: start, end: DateTime(start.year, start.month + 1));
+      case TimeGranularity.quarter:
+        final currentStart = startDate;
+        final start = DateTime(currentStart.year - 1, currentStart.month);
+        return (start: start, end: DateTime(start.year, start.month + 3));
+      case TimeGranularity.year:
+        final start = DateTime(referenceDate.year - 1);
+        return (start: start, end: DateTime(referenceDate.year));
+      case TimeGranularity.custom:
+        return null;
     }
   }
 
@@ -231,6 +339,35 @@ class ReportNotifier extends Notifier<ReportState> {
         endDate: end,
       );
 
+      var expenseComparison = ReportComparisonSummary.unsupported;
+      var incomeComparison = ReportComparisonSummary.unsupported;
+      if (state.supportsComparison) {
+        final previousRange = state.previousPeriodRange!;
+        final previousYearRange = state.samePeriodLastYearRange!;
+        final previousTotals = await _dao.getTotals(
+          ledgerId,
+          startDate: previousRange.start,
+          endDate: previousRange.end,
+        );
+        final previousYearTotals = await _dao.getTotals(
+          ledgerId,
+          startDate: previousYearRange.start,
+          endDate: previousYearRange.end,
+        );
+        expenseComparison = buildReportComparisonSummary(
+          supported: true,
+          currentAmount: totals.expense,
+          previousAmount: previousTotals.expense,
+          previousYearAmount: previousYearTotals.expense,
+        );
+        incomeComparison = buildReportComparisonSummary(
+          supported: true,
+          currentAmount: totals.income,
+          previousAmount: previousTotals.income,
+          previousYearAmount: previousYearTotals.income,
+        );
+      }
+
       if (state.dimension == ReportDimension.timeTrend) {
         List<TrendDataPoint> trend;
         if (state.granularity == TimeGranularity.month ||
@@ -253,6 +390,8 @@ class ReportNotifier extends Notifier<ReportState> {
           isLoading: false,
           totalExpense: totals.expense,
           totalIncome: totals.income,
+          expenseComparison: expenseComparison,
+          incomeComparison: incomeComparison,
           trendData: trend,
           summaryItems: [],
         );
@@ -290,6 +429,8 @@ class ReportNotifier extends Notifier<ReportState> {
           isLoading: false,
           totalExpense: totals.expense,
           totalIncome: totals.income,
+          expenseComparison: expenseComparison,
+          incomeComparison: incomeComparison,
           summaryItems: items,
           trendData: [],
         );

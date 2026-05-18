@@ -11,6 +11,7 @@ import '../features/asset/presentation/asset_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/settings/presentation/about_page.dart';
 import '../features/settings/presentation/category_management_page.dart';
+import '../features/cash_flow_analysis/presentation/cash_flow_analysis_page.dart';
 import '../features/report/presentation/report_page.dart' as report;
 import '../features/member/presentation/member_page.dart';
 import '../features/project/presentation/project_page.dart';
@@ -115,6 +116,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/report',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const report.ReportPage(),
+      ),
+      GoRoute(
+        path: '/cash-flow-analysis',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CashFlowAnalysisPage(),
       ),
       GoRoute(
         path: '/category-management',

@@ -198,6 +198,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onTap: () => context.push('/report'),
                   ),
                   _SettingsTile(
+                    icon: Icons.stacked_line_chart,
+                    title: '现金流分析',
+                    subtitle: '查看流入、流出与净现金流变化',
+                    onTap: () => context.push('/cash-flow-analysis'),
+                  ),
+                  _SettingsTile(
                     icon: Icons.category_outlined,
                     title: '分类管理',
                     subtitle: '管理收支分类与子分类',

@@ -104,6 +104,17 @@ Transaction _txn({required int id, required int type, required double amount}) {
 }
 
 void main() {
+  group('currentDayRange', () {
+    test('covers only the current natural day', () {
+      final now = DateTime(2026, 5, 13, 14, 30);
+
+      final range = currentDayRange(now);
+
+      expect(range.start, DateTime(2026, 5, 13));
+      expect(range.end, DateTime(2026, 5, 14));
+    });
+  });
+
   group('currentWeekRange', () {
     test('starts on Monday and ends at tomorrow for midweek dates', () {
       final now = DateTime(2026, 5, 13, 14, 30);
@@ -140,9 +151,14 @@ void main() {
 
   testWidgets('renders stacked weekly and monthly cards and hides amounts when disabled', (tester) async {
     final now = DateTime(2026, 5, 13, 10);
+    final dayRange = currentDayRange(now);
     final weekRange = currentWeekRange(now);
     final monthRange = currentMonthRange(now);
     final repo = _FakeTransactionRepository({
+      '1|${dayRange.start.toIso8601String()}|${dayRange.end.toIso8601String()}': [
+        _txn(id: 10, type: TransactionType.expense.value, amount: 40),
+        _txn(id: 11, type: TransactionType.income.value, amount: 120),
+      ],
       '1|${weekRange.start.toIso8601String()}|${weekRange.end.toIso8601String()}': [
         _txn(id: 1, type: TransactionType.expense.value, amount: 100),
         _txn(id: 2, type: TransactionType.income.value, amount: 300),
@@ -175,9 +191,10 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.text('今天 5/13'), findsOneWidget);
     expect(find.text('本周'), findsOneWidget);
     expect(find.text('2026年5月'), findsOneWidget);
     expect(find.text('快捷操作'), findsOneWidget);
-    expect(find.text('****'), findsNWidgets(6));
+    expect(find.text('****'), findsNWidgets(9));
   });
 }

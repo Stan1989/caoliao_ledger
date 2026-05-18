@@ -19,6 +19,11 @@ class DashboardSummaryData {
 final dashboardNowProvider = Provider<DateTime>((ref) => DateTime.now());
 final dashboardShowBackgroundProvider = Provider<bool>((ref) => true);
 
+({DateTime start, DateTime end}) currentDayRange(DateTime now) {
+  final start = DateTime(now.year, now.month, now.day);
+  return (start: start, end: start.add(const Duration(days: 1)));
+}
+
 ({DateTime start, DateTime end}) currentWeekRange(DateTime now) {
   final today = DateTime(now.year, now.month, now.day);
   final start = today.subtract(Duration(days: now.weekday - DateTime.monday));
@@ -75,10 +80,14 @@ class DashboardPage extends ConsumerWidget {
 
     final now = ref.watch(dashboardNowProvider);
     final showBackground = ref.watch(dashboardShowBackgroundProvider);
+    final dayRange = currentDayRange(now);
     final weekRange = currentWeekRange(now);
     final monthRange = currentMonthRange(now);
     final amountVisible = ref.watch(amountVisibilityProvider);
 
+    final dailySummaryAsync = ref.watch(
+      dashboardSummaryProvider((ledgerId, dayRange.start, dayRange.end)),
+    );
     final weeklySummaryAsync = ref.watch(
       dashboardSummaryProvider((ledgerId, weekRange.start, weekRange.end)),
     );
@@ -106,10 +115,12 @@ class DashboardPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: weeklySummaryAsync.when(
-        data: (weeklySummary) {
-          return monthlySummaryAsync.when(
-            data: (monthlySummary) {
+      body: dailySummaryAsync.when(
+        data: (dailySummary) {
+          return weeklySummaryAsync.when(
+            data: (weeklySummary) {
+              return monthlySummaryAsync.when(
+                data: (monthlySummary) {
           final dpr = MediaQuery.devicePixelRatioOf(context);
 
           return LayoutBuilder(
@@ -140,6 +151,12 @@ class DashboardPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _SummaryCard(
+                          title: '今天 ${now.month}/${now.day}',
+                          summary: dailySummary,
+                          amountVisible: amountVisible,
+                        ),
+                        const SizedBox(height: 16),
                         _SummaryCard(
                           title: '本周',
                           summary: weeklySummary,
@@ -188,6 +205,10 @@ class DashboardPage extends ConsumerWidget {
               );
             },
           );
+            },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('加载失败：$e')),
+              );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('加载失败：$e')),

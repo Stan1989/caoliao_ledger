@@ -59,6 +59,22 @@ class ReportPage extends ConsumerWidget {
   }
 }
 
+List<ReportSummaryItem> buildChartSummaryItems(List<ReportSummaryItem> items) {
+  if (items.length <= 10) {
+    return items;
+  }
+
+  final topItems = items.take(10).toList();
+  final remainingAmount = items
+      .skip(10)
+      .fold<double>(0, (sum, item) => sum + item.amount);
+
+  return [
+    ...topItems,
+    ReportSummaryItem(id: null, name: '其他', amount: remainingAmount),
+  ];
+}
+
 // ---------- Time Range Selector ----------
 
 class _TimeRangeSelector extends StatelessWidget {
@@ -193,6 +209,7 @@ class _IncomeExpenseToggle extends StatelessWidget {
             child: _ToggleCard(
               label: '支出',
               amount: state.totalExpense,
+              comparison: state.expenseComparison,
               selected: !state.showIncome,
               color: cs.error,
               onTap: () => notifier.toggleIncomeExpense(false),
@@ -204,6 +221,7 @@ class _IncomeExpenseToggle extends StatelessWidget {
             child: _ToggleCard(
               label: '收入',
               amount: state.totalIncome,
+              comparison: state.incomeComparison,
               selected: state.showIncome,
               color: cs.primary,
               onTap: () => notifier.toggleIncomeExpense(true),
@@ -219,6 +237,7 @@ class _IncomeExpenseToggle extends StatelessWidget {
 class _ToggleCard extends StatelessWidget {
   final String label;
   final double amount;
+  final ReportComparisonSummary comparison;
   final bool selected;
   final Color color;
   final VoidCallback onTap;
@@ -227,6 +246,7 @@ class _ToggleCard extends StatelessWidget {
   const _ToggleCard({
     required this.label,
     required this.amount,
+    required this.comparison,
     required this.selected,
     required this.color,
     required this.onTap,
@@ -265,10 +285,91 @@ class _ToggleCard extends StatelessWidget {
                   color: selected ? color : null,
                 ),
               ),
+              if (comparison.supported) ...[
+                const SizedBox(height: 8),
+                _ComparisonLine(
+                  label: '环比',
+                  value: comparison.periodOverPeriod,
+                  amountVisible: amountVisible,
+                ),
+                const SizedBox(height: 4),
+                _ComparisonLine(
+                  label: '同比',
+                  value: comparison.yearOverYear,
+                  amountVisible: amountVisible,
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ComparisonLine extends StatelessWidget {
+  final String label;
+  final ReportComparisonValue? value;
+  final bool amountVisible;
+
+  const _ComparisonLine({
+    required this.label,
+    required this.value,
+    required this.amountVisible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final deltaAmount = value?.deltaAmount ?? 0;
+    final isPositive = deltaAmount > 0;
+    final isNegative = deltaAmount < 0;
+    final color = isPositive
+        ? Theme.of(context).colorScheme.primary
+        : isNegative
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final icon = isPositive
+        ? Icons.arrow_upward
+        : isNegative
+        ? Icons.arrow_downward
+        : Icons.remove;
+    final amountText = amountVisible
+        ? '${deltaAmount >= 0 ? '+' : '-'}¥${AppTheme.formatDisplayAmount(deltaAmount.abs())}'
+        : '****';
+    final percent = value?.deltaPercent;
+    final percentText = percent == null
+        ? '--'
+        : '${percent >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%';
+
+    return Column(
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                '$amountText ($percentText)',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: color),
+                textAlign: TextAlign.center,
+                softWrap: true,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -426,7 +527,7 @@ class _ChartArea extends StatelessWidget {
   }
 
   Widget _buildBarChart(BuildContext context) {
-    final items = state.summaryItems;
+    final items = buildChartSummaryItems(state.summaryItems);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: _BarChartPanel(
@@ -437,7 +538,7 @@ class _ChartArea extends StatelessWidget {
   }
 
   Widget _buildPieChart(BuildContext context) {
-    final items = state.summaryItems;
+    final items = buildChartSummaryItems(state.summaryItems);
     if (items.isEmpty) {
       return const SizedBox(height: 200, child: Center(child: Text('暂无数据')));
     }
@@ -613,7 +714,7 @@ class _FullscreenBarChartPageState extends State<_FullscreenBarChartPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: _BarChartPanel(
-            items: widget.state.summaryItems,
+              items: buildChartSummaryItems(widget.state.summaryItems),
             paletteResolver: (index) {
               const palette = [
                 Color(0xFF5C6BC0),
