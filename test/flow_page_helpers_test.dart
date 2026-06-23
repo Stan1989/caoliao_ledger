@@ -121,5 +121,18 @@ void main() {
       expect(matchesAccountFilter(transferTxn, const {9}), isTrue);
       expect(matchesAccountFilter(transferTxn, const {7}), isFalse);
     });
+
+    test('non-transfer ignores toAccountId even when non-null', () {
+      // Simulates bug: expense with leaked toAccountId from transfer defaults.
+      final expenseTxn = _txn(
+        type: TransactionType.expense.value,
+        accountId: 5,
+        toAccountId: 25,
+      );
+      // Should NOT match filter {25} because it's not a transfer.
+      expect(matchesAccountFilter(expenseTxn, const {25}), isFalse);
+      // Still matches its real source account.
+      expect(matchesAccountFilter(expenseTxn, const {5}), isTrue);
+    });
   });
 }

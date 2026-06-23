@@ -154,7 +154,8 @@ class _FlowFilterSheetState extends State<_FlowFilterSheet> {
                       items: accounts,
                       selectedIds: _accountIds,
                       getId: (a) => a.id,
-                      getLabel: (a) => a.name,
+                      getLabel: (a) =>
+                          a.isArchived ? '${a.name} (已归档)' : a.name,
                       onToggle: (id) =>
                           setState(() => _toggleSet(_accountIds, id)),
                     ),

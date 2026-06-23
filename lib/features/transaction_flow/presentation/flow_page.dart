@@ -35,9 +35,14 @@ final _allCategoriesProvider = FutureProvider<List<Category>>((ref) async {
 
 bool matchesAccountFilter(Transaction transaction, Set<int> accountIds) {
   if (accountIds.isEmpty) return true;
-  return accountIds.contains(transaction.accountId) ||
-      (transaction.toAccountId != null &&
-          accountIds.contains(transaction.toAccountId));
+  if (accountIds.contains(transaction.accountId)) return true;
+  // Only match toAccountId for transfer transactions.
+  if (TransactionType.fromValue(transaction.type) ==
+      TransactionType.transfer) {
+    return transaction.toAccountId != null &&
+        accountIds.contains(transaction.toAccountId);
+  }
+  return false;
 }
 
 String buildFlowItemTitle(
@@ -228,7 +233,7 @@ class _FlowPageState extends ConsumerState<FlowPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      _buildFilterDescription(filter),
+                      _buildFilterDescription(filter, accountNames),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -398,7 +403,10 @@ class _FlowPageState extends ConsumerState<FlowPage> {
     );
   }
 
-  String _buildFilterDescription(FlowFilterState filter) {
+  String _buildFilterDescription(
+    FlowFilterState filter,
+    Map<int, String> accountNames,
+  ) {
     final parts = <String>[];
     if (filter.dateRange != null) {
       final fmt = DateFormat('yyyy-MM-dd');
@@ -407,7 +415,10 @@ class _FlowPageState extends ConsumerState<FlowPage> {
       );
     }
     if (filter.accountIds.isNotEmpty) {
-      parts.add('${filter.accountIds.length}个账户');
+      final names = filter.accountIds
+          .map((id) => accountNames[id] ?? '未知账户')
+          .join('、');
+      parts.add(names);
     }
     if (filter.memberIds.isNotEmpty) {
       parts.add('${filter.memberIds.length}个成员');

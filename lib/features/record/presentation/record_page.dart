@@ -183,7 +183,9 @@ class _RecordPageState extends ConsumerState<RecordPage>
           amount: form.amount,
           categoryId: Value(form.categoryId),
           accountId: form.accountId!,
-          toAccountId: Value(form.toAccountId),
+          toAccountId: Value(form.type == TransactionType.transfer
+              ? form.toAccountId
+              : null),
           memberId: Value(form.memberId),
           projectId: Value(form.projectId),
           note: Value(form.note),
@@ -211,7 +213,9 @@ class _RecordPageState extends ConsumerState<RecordPage>
           amount: form.amount,
           categoryId: form.categoryId,
           accountId: form.accountId!,
-          toAccountId: form.toAccountId,
+          toAccountId: form.type == TransactionType.transfer
+              ? form.toAccountId
+              : null,
           memberId: form.memberId,
           projectId: form.projectId,
           note: form.note,

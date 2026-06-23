@@ -127,7 +127,7 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
     );
   }
 
-  /// Persist current form selections as defaults (only in create mode).
+  /// Persist current form selections as defaults (only in create mode).<br>  /// Only saves toAccount for transfer type; clears it for expense/income.
   Future<void> _saveDefaults() async {
     if (_isEditing) return;
 
@@ -136,17 +136,18 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
 
     final service = ref.read(recordDefaultsServiceProvider);
     final s = state;
+    final isTransfer = s.type == TransactionType.transfer;
 
     await service.save(
       ledgerId,
       s.type,
       RecordDefaultsData(
-        categoryId: s.categoryId,
-        categoryName: s.categoryName,
+        categoryId: isTransfer ? null : s.categoryId,
+        categoryName: isTransfer ? null : s.categoryName,
         accountId: s.accountId,
         accountName: s.accountName,
-        toAccountId: s.toAccountId,
-        toAccountName: s.toAccountName,
+        toAccountId: isTransfer ? s.toAccountId : null,
+        toAccountName: isTransfer ? s.toAccountName : null,
         memberId: s.memberId,
         memberName: s.memberName,
         projectId: s.projectId,
@@ -156,7 +157,11 @@ class RecordFormNotifier extends Notifier<RecordFormState> {
   }
 
   void setType(TransactionType type) {
-    state = state.copyWith(type: type, clearCategory: true);
+    state = state.copyWith(
+      type: type,
+      clearCategory: true,
+      clearToAccount: type != TransactionType.transfer,
+    );
     // Load defaults for the new type.
     _loadDefaults(type);
   }
