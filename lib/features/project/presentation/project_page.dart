@@ -6,6 +6,28 @@ import '../../../app/theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 
+/// Sort projects by the given [mode], using [expenseTotals] for amount sorting.
+List<Project> _sortProjects(
+  List<Project> projects,
+  Map<int, double> expenseTotals,
+  ProjectSortMode mode,
+) {
+  final sorted = List<Project>.from(projects);
+  switch (mode) {
+    case ProjectSortMode.nameAsc:
+      sorted.sort((a, b) => a.name.compareTo(b.name));
+    case ProjectSortMode.nameDesc:
+      sorted.sort((a, b) => b.name.compareTo(a.name));
+    case ProjectSortMode.amountAsc:
+      sorted.sort((a, b) =>
+          (expenseTotals[a.id] ?? 0).compareTo(expenseTotals[b.id] ?? 0));
+    case ProjectSortMode.amountDesc:
+      sorted.sort((a, b) =>
+          (expenseTotals[b.id] ?? 0).compareTo(expenseTotals[a.id] ?? 0));
+  }
+  return sorted;
+}
+
 /// Project management page.
 class ProjectPage extends ConsumerWidget {
   const ProjectPage({super.key});
@@ -21,9 +43,40 @@ class ProjectPage extends ConsumerWidget {
 
     final projectsAsync = ref.watch(projectsProvider);
     final expenseTotalsAsync = ref.watch(projectExpenseTotalsProvider);
+    final sortMode = ref.watch(projectSortModeProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('项目管理')),
+      appBar: AppBar(
+        title: const Text('项目管理'),
+        actions: [
+          PopupMenuButton<ProjectSortMode>(
+            icon: const Icon(Icons.sort),
+            tooltip: '排序方式',
+            initialValue: sortMode,
+            onSelected: (mode) {
+              ref.read(projectSortModeProvider.notifier).set(mode);
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: ProjectSortMode.nameAsc,
+                child: Text('名称升序'),
+              ),
+              const PopupMenuItem(
+                value: ProjectSortMode.nameDesc,
+                child: Text('名称降序'),
+              ),
+              const PopupMenuItem(
+                value: ProjectSortMode.amountAsc,
+                child: Text('金额升序'),
+              ),
+              const PopupMenuItem(
+                value: ProjectSortMode.amountDesc,
+                child: Text('金额降序'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: projectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败：$e')),
@@ -60,9 +113,10 @@ class ProjectPage extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('加载失败：$e')),
             data: (expenseTotals) {
+              final sorted = _sortProjects(projects, expenseTotals, sortMode);
               return ListView(
                 padding: const EdgeInsets.all(16),
-                children: projects.map((p) {
+                children: sorted.map((p) {
                   final isArchived = p.isArchived;
                   final expenseTotal = expenseTotals[p.id] ?? 0;
                   return Card(

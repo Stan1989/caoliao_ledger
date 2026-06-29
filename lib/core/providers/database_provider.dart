@@ -122,6 +122,26 @@ final projectExpenseTotalsProvider = StreamProvider<Map<int, double>>((ref) {
   );
 });
 
+/// Sort mode for the project management page.
+enum ProjectSortMode {
+  nameAsc,
+  nameDesc,
+  amountAsc,
+  amountDesc,
+}
+
+/// Notifier for project sort mode selection.
+class ProjectSortModeNotifier extends Notifier<ProjectSortMode> {
+  @override
+  ProjectSortMode build() => ProjectSortMode.nameAsc;
+
+  void set(ProjectSortMode mode) => state = mode;
+}
+
+/// Provider for project sort mode selection.
+final projectSortModeProvider = NotifierProvider<ProjectSortModeNotifier,
+    ProjectSortMode>(ProjectSortModeNotifier.new);
+
 /// ReportDao provider for aggregation queries.
 final reportDaoProvider = Provider<ReportDao>((ref) {
   final db = ref.watch(appDatabaseProvider);
