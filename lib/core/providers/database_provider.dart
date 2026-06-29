@@ -142,6 +142,37 @@ class ProjectSortModeNotifier extends Notifier<ProjectSortMode> {
 final projectSortModeProvider = NotifierProvider<ProjectSortModeNotifier,
     ProjectSortMode>(ProjectSortModeNotifier.new);
 
+/// Watch cumulative expense totals per member for the active ledger.
+final memberExpenseTotalsProvider = StreamProvider<Map<int, double>>((ref) {
+  final ledgerId = ref.watch(activeLedgerIdProvider);
+  if (ledgerId == null) return const Stream.empty();
+  return ref
+      .watch(appDatabaseProvider)
+      .memberDao
+      .watchExpenseTotalsByLedger(ledgerId);
+});
+
+/// Sort mode for the member management page.
+enum MemberSortMode {
+  nameAsc,
+  nameDesc,
+  amountAsc,
+  amountDesc,
+}
+
+/// Notifier for member sort mode selection.
+class MemberSortModeNotifier extends Notifier<MemberSortMode> {
+  @override
+  MemberSortMode build() => MemberSortMode.nameAsc;
+
+  void set(MemberSortMode mode) => state = mode;
+}
+
+/// Provider for member sort mode selection.
+final memberSortModeProvider =
+    NotifierProvider<MemberSortModeNotifier, MemberSortMode>(
+        MemberSortModeNotifier.new);
+
 /// ReportDao provider for aggregation queries.
 final reportDaoProvider = Provider<ReportDao>((ref) {
   final db = ref.watch(appDatabaseProvider);

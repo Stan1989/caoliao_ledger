@@ -2,9 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
 
+import '../../../app/theme.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/models/enums.dart';
 import '../../../core/providers/database_provider.dart';
+
+/// Sort members by the given [mode], using [expenseTotals] for amount sorting.
+List<Member> _sortMembers(
+  List<Member> members,
+  Map<int, double> expenseTotals,
+  MemberSortMode mode,
+) {
+  final sorted = List<Member>.from(members);
+  switch (mode) {
+    case MemberSortMode.nameAsc:
+      sorted.sort((a, b) => a.name.compareTo(b.name));
+    case MemberSortMode.nameDesc:
+      sorted.sort((a, b) => b.name.compareTo(a.name));
+    case MemberSortMode.amountAsc:
+      sorted.sort((a, b) =>
+          (expenseTotals[a.id] ?? 0).compareTo(expenseTotals[b.id] ?? 0));
+    case MemberSortMode.amountDesc:
+      sorted.sort((a, b) =>
+          (expenseTotals[b.id] ?? 0).compareTo(expenseTotals[a.id] ?? 0));
+  }
+  return sorted;
+}
 
 /// Member management page.
 class MemberPage extends ConsumerWidget {
@@ -19,88 +42,123 @@ class MemberPage extends ConsumerWidget {
       );
     }
 
-    final membersStream = ref
-        .watch(appDatabaseProvider)
-        .memberDao
-        .watchByLedger(ledgerId);
+    final membersAsync = ref.watch(membersProvider);
+    final expenseTotalsAsync = ref.watch(memberExpenseTotalsProvider);
+    final sortMode = ref.watch(memberSortModeProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('成员管理')),
-      body: StreamBuilder<List<Member>>(
-        stream: membersStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('加载失败：${snapshot.error}'));
-          }
-
-          final members = snapshot.data ?? [];
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ...members.map(
-                (m) => Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(m.name.characters.first),
-                    ),
-                    title: Text(m.name),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: m.role == MemberRole.admin.value
-                            ? Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                            : Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        m.role == MemberRole.admin.value ? '管理员' : '成员',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                    ),
-                    onTap: () => _showEditMember(context, ref, m),
-                    onLongPress: () => _confirmDeleteMember(context, ref, m),
-                  ),
-                ),
+      appBar: AppBar(
+        title: const Text('成员管理'),
+        actions: [
+          PopupMenuButton<MemberSortMode>(
+            icon: const Icon(Icons.sort),
+            tooltip: '排序方式',
+            initialValue: sortMode,
+            onSelected: (mode) {
+              ref.read(memberSortModeProvider.notifier).set(mode);
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: MemberSortMode.nameAsc,
+                child: Text('名称升序'),
               ),
-              // Robot placeholder
-              Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.smart_toy_outlined),
-                  ),
-                  title: const Text('自动记账机器人'),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '敬请期待',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
-                ),
+              const PopupMenuItem(
+                value: MemberSortMode.nameDesc,
+                child: Text('名称降序'),
+              ),
+              const PopupMenuItem(
+                value: MemberSortMode.amountAsc,
+                child: Text('金额升序'),
+              ),
+              const PopupMenuItem(
+                value: MemberSortMode.amountDesc,
+                child: Text('金额降序'),
               ),
             ],
+          ),
+        ],
+      ),
+      body: membersAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('加载失败：$e')),
+        data: (members) {
+          return expenseTotalsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('加载失败：$e')),
+            data: (expenseTotals) {
+              final sorted = _sortMembers(members, expenseTotals, sortMode);
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  ...sorted.map(
+                    (m) {
+                      final expenseTotal = expenseTotals[m.id] ?? 0;
+                      return Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            child: Text(m.name.characters.first),
+                          ),
+                          title: Text(m.name),
+                          subtitle: Text(
+                            '支出 ¥${AppTheme.formatDisplayAmount(expenseTotal)}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: m.role == MemberRole.admin.value
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              m.role == MemberRole.admin.value
+                                  ? '管理员'
+                                  : '成员',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ),
+                          onTap: () => _showEditMember(context, ref, m),
+                          onLongPress: () =>
+                              _confirmDeleteMember(context, ref, m),
+                        ),
+                      );
+                    },
+                  ),
+                  // Robot placeholder
+                  Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        child: const Icon(Icons.smart_toy_outlined),
+                      ),
+                      title: const Text('自动记账机器人'),
+                      subtitle: Text(
+                        '敬请期待',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
