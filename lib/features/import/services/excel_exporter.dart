@@ -122,7 +122,7 @@ class ExcelExporter {
     // Save to file
     final dir = await getTemporaryDirectory();
     final now = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final fileName = '草料记账_${ledgerName}_$now.xlsx';
+    final fileName = '牛马记账_${ledgerName}_$now.xlsx';
     final filePath = '${dir.path}/$fileName';
 
     final bytes = excel.encode();

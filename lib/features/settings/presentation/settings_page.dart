@@ -258,7 +258,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 children: [
                   _SettingsTile(
                     icon: Icons.info_outline,
-                    title: '关于草料记账',
+                    title: '关于牛马记账',
                     subtitle: 'v1.0.0',
                     onTap: () => context.push('/about'),
                   ),

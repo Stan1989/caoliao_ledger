@@ -13,7 +13,7 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('关于草料记账')),
+      appBar: AppBar(title: const Text('关于牛马记账')),
       body: FutureBuilder<PackageInfo>(
         future: PackageInfo.fromPlatform(),
         builder: (context, snapshot) {
@@ -30,7 +30,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '草料记账',
+                '牛马记账',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,

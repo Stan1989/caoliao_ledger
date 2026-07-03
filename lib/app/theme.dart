@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Global Material 3 theme for 草料记账.
+/// Global Material 3 theme for 牛马记账.
 class AppTheme {
   AppTheme._();
 

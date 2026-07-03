@@ -16,7 +16,7 @@ class App extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: '草料记账',
+      title: '牛马记账',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
@@ -66,31 +66,26 @@ class _PrivacyGateState extends State<_PrivacyGate> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Always mount the child so the Navigator/Router stays in the tree.
-        widget.child,
-        if (!_checked)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Colors.white,
-              child: Center(child: CircularProgressIndicator()),
-            ),
+    if (!_checked) {
+      return const ColoredBox(
+        color: Colors.white,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_accepted) {
+      return ColoredBox(
+        color: Colors.black54,
+        child: Center(
+          child: PrivacyConsentDialog(
+            onResult: (agreed) {
+              if (mounted) setState(() => _accepted = agreed);
+            },
           ),
-        if (_checked && !_accepted)
-          Positioned.fill(
-            child: ColoredBox(
-              color: Colors.black54,
-              child: Center(
-                child: PrivacyConsentDialog(
-                  onResult: (agreed) {
-                    if (mounted) setState(() => _accepted = agreed);
-                  },
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+        ),
+      );
+    }
+
+    return widget.child;
   }
 }

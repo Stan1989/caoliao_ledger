@@ -25,15 +25,20 @@ class PrivacyConsentDialog extends StatefulWidget {
 class _PrivacyConsentDialogState extends State<PrivacyConsentDialog> {
   bool _agreed = false;
   String _markdown = '';
+  bool _loadedMarkdown = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadedMarkdown) return;
+    _loadedMarkdown = true;
     _loadMarkdown();
   }
 
   Future<void> _loadMarkdown() async {
-    final content = await rootBundle.loadString('assets/privacy_policy.md');
+    final content = await DefaultAssetBundle.of(
+      context,
+    ).loadString('assets/privacy_policy.md');
     if (mounted) {
       setState(() => _markdown = content);
     }
@@ -67,7 +72,7 @@ class _PrivacyConsentDialogState extends State<PrivacyConsentDialog> {
                     ? const Center(child: CircularProgressIndicator())
                     : Markdown(
                         data: _markdown,
-                        selectable: true,
+                        selectable: false,
                       ),
               ),
               const SizedBox(height: 8),
